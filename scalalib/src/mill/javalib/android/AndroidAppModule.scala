@@ -5,11 +5,14 @@ import mill._
 import mill.scalalib._
 import mill.api.{Logger, PathRef}
 import mill.define.ModuleRef
+import mill.testrunner.TestResult
 import mill.util.Jvm
 import os.RelPath
 import upickle.default._
+import scala.jdk.CollectionConverters._
 
 import scala.jdk.OptionConverters.RichOptional
+import scala.jdk.Accumulator._
 import scala.xml.XML
 
 /**
@@ -1050,10 +1053,71 @@ trait AndroidAppModule extends JavaModule {
       emulator
     }
 
-    def test: T[Vector[String]] = Task {
+    /*
+  "INSTRUMENTATION_STATUS: class=com.helloworld.app.ExampleInstrumentedTest",
+  "INSTRUMENTATION_STATUS: current=1",
+  "INSTRUMENTATION_STATUS: id=AndroidJUnitRunner",
+  "INSTRUMENTATION_STATUS: numtests=1",
+  "INSTRUMENTATION_STATUS: stream=",
+  "com.helloworld.app.ExampleInstrumentedTest:",
+  "INSTRUMENTATION_STATUS: test=useAppContext",
+  "INSTRUMENTATION_STATUS_CODE: 1"
+
+   case class TestResult(
+    fullyQualifiedName: String,
+    selector: String,
+    duration: Long,
+    status: String,
+    exceptionName: Option[String] = None,
+    exceptionMsg: Option[String] = None,
+    exceptionTrace: Option[Seq[StackTraceElement]] = None
+)
+mapping: INSTRUMENTATION_STATUS_CODE -> status
+duration: -> measure from "INSTRUMENTATION_STATUS: class=
+until INSTRUMENTATION_STATUS_CODE -> status
+
+fullyQualifiedName: use   "INSTRUMENTATION_STATUS: class=com.helloworld.app.ExampleInstrumentedTest", and
+  "INSTRUMENTATION_STATUS: test=useAppContext", (see junit examples to create the correct format)
+
+  selector: not sure, use globSelectors, or see other junit examples
+
+
+  https://android.googlesource.com/platform/development/+/52d4c30ca52320ec92d1d1ddc8db3f07f69c4f98/tools/ddms/libs/ddmlib/src/com/android/ddmlib/testrunner/InstrumentationResultParser.java
+
+     */
+    sealed trait InstrumentationOutput
+    case class TestClassName(className: String) extends InstrumentationOutput
+    case class TestMethodName(methodName: String) extends InstrumentationOutput
+    case class StatusStarted() extends InstrumentationOutput
+    case class StatusOk() extends InstrumentationOutput
+    case class StatusFailure() extends InstrumentationOutput
+    case class StatusError() extends InstrumentationOutput
+    case class Stream()
+    case class Ignored(ignore: String) extends InstrumentationOutput
+
+    private def parseLine(line: String): InstrumentationOutput = {
+      if(line.contains("class=")){
+        val parts = line.split("class=")
+        TestClassName(parts(1))
+      } else if(line.contains("test=")){
+        val parts = line.split("test=")
+        TestMethodName(parts(1))
+      } else if(line.contains("INSTRUMENTATION_STATUS_CODE:")){
+        val parts = line.split(" ")
+        parts(1) match {
+          case "1" => StatusStarted()
+          case "0" => StatusOk()
+          case "-1" => StatusError()
+          case "-2" => StatusFailure()
+        }
+      } else {
+        Ignored(line)
+      }
+    }
+    override def testTask(args: Task[Seq[String]], globSelectors:  Task[Seq[String]]): Task[(String, Seq[TestResult])] = Task {
       val device = androidInstall()
 
-      val instrumentOutput = os.call(
+      val instrumentOutput = os.proc(
         (
           androidSdkModule().adbPath().path,
           "-s",
@@ -1062,11 +1126,36 @@ trait AndroidAppModule extends JavaModule {
           "am",
           "instrument",
           "-w",
-          "-m",
+          "-r",
           s"$instrumentationPackage/${testFramework()}"
         )
-      )
-      instrumentOutput.out.lines()
+      ).spawn()
+
+      val outputReader = instrumentOutput.stdout.buffered
+
+      case class TimeResultState(started: Long, currentTestResult: TestResult, testResults: Seq[TestResult])
+      val testResultStarted = TestResult("", "",  0L, "")
+      val testResults = outputReader.lines().iterator().asScala.foldLeft(TimeResultState(0, testResultStarted, Seq.empty)) {
+        case (state, nextLine) =>
+          parseLine(nextLine) match {
+            case TestClassName(className) =>
+              T.log.debug(s"TestClassName=$className")
+              TimeResultState(0L, state.currentTestResult.copy(fullyQualifiedName = className), state.testResults)
+            case TestMethodName(methodName) =>
+              val fullyQualifiedNAme = s"${state.currentTestResult.fullyQualifiedName}.${methodName}"
+              state.copy(currentTestResult = state.currentTestResult.copy(fullyQualifiedName = fullyQualifiedNAme))
+            case StatusStarted() =>
+              state.copy(started = System.currentTimeMillis())
+            case StatusOk() =>
+              val ended = System.currentTimeMillis()
+              val testResult = state.currentTestResult.copy(duration = ended - state.started, status = "Success")
+              TimeResultState(0L, testResultStarted, state.testResults :+ testResult)
+            case Ignored(_) =>
+              state
+          }
+      }
+
+      ("", testResults.testResults)
     }
 
     /** Builds the apk including the integration tests (e.g. from androidTest) */
