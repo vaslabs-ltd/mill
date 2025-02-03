@@ -6,7 +6,7 @@
 package mill
 package kotlinlib
 
-import mill.api.{PathRef, Result, internal}
+import mill.api.{Loose, PathRef, Result, internal}
 import mill.define.{Command, ModuleRef, Task}
 import mill.kotlinlib.worker.api.{KotlinWorker, KotlinWorkerTarget}
 import mill.scalalib.api.{CompilationResult, ZincWorkerApi}
@@ -74,10 +74,34 @@ trait KotlinModule extends JavaModule { outer =>
    */
   def kotlinApiVersion: T[String] = Task { "" }
 
+  def symbolProcessingVersion: T[String] = Task { "1.0.29" }
   /**
    * Flag to use explicit API check in the compiler. Default is `false`.
    */
   def kotlinExplicitApi: T[Boolean] = Task { false }
+
+  /** Flag to use KSP */
+  def kotlinSymbolProcessing: T[Boolean] = Task { false }
+
+  /**
+   * Mandatory plugins that are needed for KSP to work.
+   * For more info go to [[https://kotlinlang.org/docs/ksp-command-line.html]]
+   * @return
+   */
+  final def kspPlugins: T[Agg[Dep]] = Task {
+    if (kotlinSymbolProcessing()) {
+      Agg(
+        ivy"com.google.devtools.ksp:symbol-processing-api:${kotlinVersion()}-${symbolProcessingVersion()}",
+        ivy"com.google.devtools.ksp:symbol-processing-cmdline:${kotlinVersion()}-${symbolProcessingVersion()}"
+      )
+    } else Agg.empty[Dep]
+  }
+
+  private def kspPluginsResolved: T[Agg[PathRef]] = Task {
+    kspPlugins().map {
+      dep => defaultResolver().resolveDeps(Seq(dep)).head
+    }
+  }
 
   type CompileProblemReporter = mill.api.CompileProblemReporter
 
@@ -134,6 +158,34 @@ trait KotlinModule extends JavaModule { outer =>
     else
       Seq(ivy"org.jetbrains.kotlin:kotlin-scripting-compiler:${kotlinCompilerVersion()}")
   }
+
+  def kotlinCompilerPlugins: T[Agg[Dep]] = Task { kspPlugins() ++ Agg.empty[Dep] }
+
+  def kotlinCompilerPluginsResolved: T[Agg[PathRef]] = Task {
+    kotlinCompilerPlugins().map { dep =>
+      defaultResolver().resolveDeps(
+        Seq(dep)
+      ).head
+    }
+  }
+
+  /**
+   * The symbol processors to be used by the Kotlin compiler.
+   * Default is empty.
+   */
+  def kotlinSymbolProcessors: T[Agg[Dep]] = Task { Agg.empty[Dep] }
+
+  private def kotlinSymbolProcessorsResolved: T[Agg[PathRef]] = Task {
+    kotlinSymbolProcessors().map {
+      dep =>
+        defaultResolver().resolveDeps(Seq(dep)).head
+    }
+  }
+
+  /**
+   * The symbol processing plugin id
+   */
+  def kotlinSymbolProcessorId: T[String] = Task { "com.google.devtools.ksp.symbol-processing" }
 
   /**
    * The Ivy/Coursier dependencies resembling the Kotlin compiler.
@@ -287,6 +339,32 @@ trait KotlinModule extends JavaModule { outer =>
       val compileCp = compileClasspath().map(_.path).filter(os.exists)
       val updateCompileOutput = upstreamCompileOutput()
 
+      val kspCompilerArgs = if (kotlinSymbolProcessing()) {
+        val pluginArgs: Agg[String] = kspPluginsResolved().map { jarPathRef =>
+          s"-Xplugin=${jarPathRef.path.toString()}"
+        }
+
+        val pluginOpt = s"plugin:${kotlinSymbolProcessorId()}"
+
+        val apClasspath = kotlinSymbolProcessorsResolved().mkString(File.pathSeparator)
+
+        val pluginConfigs = Seq(
+          s"-P $pluginOpt:apClasspath=$apClasspath",
+          s"-P $pluginOpt:projectBaseDir=${millSourcePath}",
+          s"-P $pluginOpt:classOutputDir=${dest}",
+          s"-P $pluginOpt:javaOutputDir=${dest}",
+          s"-P $pluginOpt:kotlinOutputDir=${dest}",
+          s"-P $pluginOpt:resourceOutputDir=${dest}",
+          s"-P $pluginOpt:kspOutputDir=${dest}",
+          s"-P $pluginOpt:cachesDir=${dest}",
+          s"-P $pluginOpt:incremental=false"
+        )
+
+        pluginArgs ++ pluginConfigs
+
+      } else
+        Seq()
+
       def compileJava: Result[CompilationResult] = {
         ctx.log.info(
           s"Compiling ${javaSourceFiles.size} Java sources to ${classes} ..."
@@ -322,6 +400,7 @@ trait KotlinModule extends JavaModule { outer =>
             "-Xexplicit-api=strict"
           ),
           kotlincOptions(),
+          kspCompilerArgs,
           extraKotlinArgs,
           // parameters
           (kotlinSourceFiles ++ javaSourceFiles).map(_.toString())

@@ -12,7 +12,7 @@ import os.RelPath
 import upickle.default._
 
 import scala.jdk.OptionConverters.RichOptional
-import scala.xml.XML
+import scala.xml._
 
 /**
  * Enumeration for Android Lint report formats, providing predefined formats
@@ -89,6 +89,9 @@ trait AndroidAppModule extends JavaModule {
     super.repositoriesTask() :+ AndroidSdkModule.mavenGoogle
   }
 
+  def androidApplicationNamespace: String
+  def androidApplicationId: String
+
   override def sources: T[Seq[PathRef]] = Task.Sources(moduleDir / "src/main/java")
 
   /**
@@ -99,7 +102,17 @@ trait AndroidAppModule extends JavaModule {
   /**
    * Provides os.Path to an XML file containing configuration and metadata about your android application.
    */
-  def androidManifest: Task[PathRef] = Task.Source("src/main/AndroidManifest.xml")
+  def androidManifest: T[PathRef] = Task {
+    val manifestFromSourcePath = millSourcePath / "src/main/AndroidManifest.xml"
+
+    val manifestElem = XML.loadFile(manifestFromSourcePath.toString())
+    // add the application package
+    val manifestWithPackage = manifestElem % Attribute(None, "package", Text(androidApplicationNamespace), Null)
+    val generatedManifestPath = Task.dest / "AndroidManifest.xml"
+    os.write(generatedManifestPath, manifestWithPackage.mkString)
+
+    PathRef(generatedManifestPath)
+  }
 
   /**
    * Name of the release keystore file. Default is not set.
@@ -1069,6 +1082,9 @@ trait AndroidAppModule extends JavaModule {
     private def androidMainSourcePath = parent.moduleDir
     private def androidTestPath = androidMainSourcePath / "src/androidTest"
 
+    override def androidApplicationNamespace: String = parent.androidApplicationNamespace
+    override def androidApplicationId: String = parent.androidApplicationId
+
     override def moduleDeps: Seq[JavaModule] = Seq(parent)
 
     override def androidCompileSdk: T[Int] = parent.androidCompileSdk
@@ -1099,7 +1115,7 @@ trait AndroidAppModule extends JavaModule {
      * will need to be created. Then this needs to point to the location of that debug
      * AndroidManifest.xml
      */
-    override def androidManifest: Task[PathRef] = parent.androidManifest
+    override def androidManifest: T[PathRef] = parent.androidManifest
 
     override def androidVirtualDeviceIdentifier: String = parent.androidVirtualDeviceIdentifier
     override def androidEmulatorArchitecture: String = parent.androidEmulatorArchitecture
