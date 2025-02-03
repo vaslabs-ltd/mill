@@ -92,7 +92,7 @@ trait AndroidAppKotlinModule extends AndroidAppModule with KotlinModule { outer 
     def layoutLibVersion: String = "14.0.9"
     def composePreviewRendererVersion: String = "0.0.1-alpha08"
 
-    def namespace: String
+    def androidApplicationNamespace: String
 
     override def moduleDeps: Seq[JavaModule] = Seq(outer)
 
@@ -221,7 +221,7 @@ trait AndroidAppKotlinModule extends AndroidAppModule with KotlinModule { outer 
         classPath = compileClasspath().map(_.path.toString()).toSeq,
         projectClassPath = Seq(compile().classes.path.toString()),
         screenshots = androidDiscoveredPreviews()._2,
-        namespace = namespace,
+        namespace = androidApplicationNamespace,
         resourceApkPath = resourceApkPath().path.toString(),
         resultsFilePath = resultsFilePath.toString()
       )
