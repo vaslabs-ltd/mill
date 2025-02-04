@@ -92,15 +92,13 @@ trait KotlinModule extends JavaModule { outer =>
     if (kotlinSymbolProcessing()) {
       Agg(
         ivy"com.google.devtools.ksp:symbol-processing-api:${kotlinVersion()}-${symbolProcessingVersion()}",
-        ivy"com.google.devtools.ksp:symbol-processing-cmdline:${kotlinVersion()}-${symbolProcessingVersion()}"
+        ivy"com.google.devtools.ksp:symbol-processing-cmdline:${kotlinVersion()}-${symbolProcessingVersion()}",
       )
     } else Agg.empty[Dep]
   }
 
-  private def kspPluginsResolved: T[Agg[PathRef]] = Task {
-    kspPlugins().map {
-      dep => defaultResolver().resolveDeps(Seq(dep)).head
-    }
+  final def kspPluginsResolved: T[Agg[PathRef]] = Task {
+    defaultResolver().resolveDeps(kspPlugins())
   }
 
   type CompileProblemReporter = mill.api.CompileProblemReporter
@@ -159,14 +157,10 @@ trait KotlinModule extends JavaModule { outer =>
       Seq(ivy"org.jetbrains.kotlin:kotlin-scripting-compiler:${kotlinCompilerVersion()}")
   }
 
-  def kotlinCompilerPlugins: T[Agg[Dep]] = Task { kspPlugins() ++ Agg.empty[Dep] }
+  def kotlinCompilerPlugins: T[Agg[Dep]] = Task { kspPlugins() }
 
   def kotlinCompilerPluginsResolved: T[Agg[PathRef]] = Task {
-    kotlinCompilerPlugins().map { dep =>
-      defaultResolver().resolveDeps(
-        Seq(dep)
-      ).head
-    }
+    defaultResolver().resolveDeps(kotlinCompilerPlugins())
   }
 
   /**
@@ -175,11 +169,10 @@ trait KotlinModule extends JavaModule { outer =>
    */
   def kotlinSymbolProcessors: T[Agg[Dep]] = Task { Agg.empty[Dep] }
 
-  private def kotlinSymbolProcessorsResolved: T[Agg[PathRef]] = Task {
-    kotlinSymbolProcessors().map {
-      dep =>
-        defaultResolver().resolveDeps(Seq(dep)).head
-    }
+  def kotlinSymbolProcessorsResolved: T[Agg[PathRef]] = Task {
+    defaultResolver().resolveDeps(
+      kotlinSymbolProcessors()
+    )
   }
 
   /**
@@ -340,27 +333,33 @@ trait KotlinModule extends JavaModule { outer =>
       val updateCompileOutput = upstreamCompileOutput()
 
       val kspCompilerArgs = if (kotlinSymbolProcessing()) {
-        val pluginArgs: Agg[String] = kspPluginsResolved().map { jarPathRef =>
-          s"-Xplugin=${jarPathRef.path.toString()}"
-        }
+        val pluginArgs: String = kspPluginsResolved().map(_.path)
+          .mkString(",")
+
+        val xPluginArg = s"-Xplugin=$pluginArgs"
 
         val pluginOpt = s"plugin:${kotlinSymbolProcessorId()}"
 
-        val apClasspath = kotlinSymbolProcessorsResolved().mkString(File.pathSeparator)
+        val apClasspath = kotlinSymbolProcessorsResolved().map(_.path).mkString(File.pathSeparator)
 
+        val out = dest / "out"
+        os.makeDir.all(out)
         val pluginConfigs = Seq(
-          s"-P $pluginOpt:apClasspath=$apClasspath",
-          s"-P $pluginOpt:projectBaseDir=${millSourcePath}",
-          s"-P $pluginOpt:classOutputDir=${dest}",
-          s"-P $pluginOpt:javaOutputDir=${dest}",
-          s"-P $pluginOpt:kotlinOutputDir=${dest}",
-          s"-P $pluginOpt:resourceOutputDir=${dest}",
-          s"-P $pluginOpt:kspOutputDir=${dest}",
-          s"-P $pluginOpt:cachesDir=${dest}",
-          s"-P $pluginOpt:incremental=false"
-        )
+          s"$pluginOpt:apclasspath=$apClasspath",
+          s"$pluginOpt:projectBaseDir=${millSourcePath}",
+          s"$pluginOpt:classOutputDir=${out}",
+          s"$pluginOpt:javaOutputDir=${out}",
+          s"$pluginOpt:kotlinOutputDir=${out}",
+          s"$pluginOpt:resourceOutputDir=${out}",
+          s"$pluginOpt:kspOutputDir=${out}",
+          s"$pluginOpt:cachesDir=${out}",
+          s"$pluginOpt:incremental=true",
+          s"$pluginOpt:allWarningsAsErrors=false",
+          s"$pluginOpt:returnOkOnError=true",
+          s"$pluginOpt:mapAnnotationArgumentsInJava=false",
+        ).mkString(",")
 
-        pluginArgs ++ pluginConfigs
+        Seq(xPluginArg) ++ Seq("-P", pluginConfigs)
 
       } else
         Seq()
@@ -390,7 +389,8 @@ trait KotlinModule extends JavaModule { outer =>
           Seq("-d", classes.toString()),
           // apply multi-platform support (expect/actual)
           // TODO if there is penalty for activating it in the compiler, put it behind configuration flag
-          Seq("-Xmulti-platform"),
+//          Seq("-Xmulti-platform"),
+          Seq("-Xallow-no-source-files"),
           // classpath
           when(compileCp.iterator.nonEmpty)(
             "-classpath",

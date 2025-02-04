@@ -82,7 +82,30 @@ trait AndroidAppModule extends JavaModule {
   /**
    * Adds "aar" to the handled artifact types.
    */
-  override def artifactTypes: T[Set[coursier.Type]] =
+  override def
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  artifactTypes: T[Set[coursier.Type]] =
     Task { super.artifactTypes() + coursier.Type("aar") }
 
   override def repositoriesTask: Task[Seq[Repository]] = Task.Anon {
