@@ -7,10 +7,7 @@ import mill.api.{PathRef, Result}
 import mill.util.JarManifest
 import mill.main.Tasks
 import mill.scalalib.PublishModule.checkSonatypeCreds
-import mill.scalalib.publish.SonatypeHelpers.{
-  PASSWORD_ENV_VARIABLE_NAME,
-  USERNAME_ENV_VARIABLE_NAME
-}
+import mill.scalalib.publish.SonatypeHelpers.{PASSWORD_ENV_VARIABLE_NAME, USERNAME_ENV_VARIABLE_NAME}
 import mill.scalalib.publish.{Artifact, SonatypePublisher}
 import os.Path
 
@@ -301,7 +298,7 @@ trait PublishModule extends JavaModule { outer =>
     Artifact(pomSettings().organization, artifactId(), publishVersion())
   }
 
-  private def defaultPublishInfos: T[Seq[PublishInfo]] = {
+  def defaultPublishInfos: T[Seq[PublishInfo]] = {
     def defaultPublishJars: Task[Seq[(PathRef, PathRef => PublishInfo)]] = {
       pomPackagingType match {
         case PackagingType.Pom => Task.Anon(Seq())
@@ -415,6 +412,15 @@ trait PublishModule extends JavaModule { outer =>
             pom() -> s"$baseName.pom"
           )
         }
+      case PackagingType.Aar => Task.Anon {
+        val baseName = baseNameTask()
+        Seq(
+          jar() -> s"$baseName.aar",
+          sourceJar() -> s"$baseName-sources.jar",
+          docJar() -> s"$baseName-javadoc.jar",
+          pom() -> s"$baseName.pom"
+        )
+      }
       case PackagingType.Jar | _ => Task.Anon {
           val baseName = baseNameTask()
           Seq(
@@ -633,4 +639,5 @@ object PublishModule extends ExternalModule with TaskModule {
     }
 
   lazy val millDiscover: mill.define.Discover = mill.define.Discover[this.type]
+
 }
