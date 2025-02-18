@@ -1,18 +1,19 @@
 package mill.javalib.android
 
 import coursier.Repository
-import mill._
-import mill.scalalib._
+import mill.*
+import mill.scalalib.*
 import mill.api.{Logger, PathRef, internal}
 import mill.define.{ModuleRef, Task}
 import mill.scalalib.bsp.BspBuildTarget
 import mill.testrunner.TestResult
 import mill.util.Jvm
-import os.RelPath
-import upickle.default._
+import os.{RelPath, SubPath}
+import os.zip.ZipSource
+import upickle.default.*
 
 import scala.jdk.OptionConverters.RichOptional
-import scala.xml._
+import scala.xml.*
 
 /**
  * Enumeration for Android Lint report formats, providing predefined formats
@@ -82,30 +83,7 @@ trait AndroidAppModule extends JavaModule {
   /**
    * Adds "aar" to the handled artifact types.
    */
-  override def
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  artifactTypes: T[Set[coursier.Type]] =
+  override def artifactTypes: T[Set[coursier.Type]] =
     Task { super.artifactTypes() + coursier.Type("aar") }
 
   override def repositoriesTask: Task[Seq[Repository]] = Task.Anon {
@@ -126,7 +104,7 @@ trait AndroidAppModule extends JavaModule {
    * Provides os.Path to an XML file containing configuration and metadata about your android application.
    */
   def androidManifest: T[PathRef] = Task {
-    val manifestFromSourcePath = millSourcePath / "src/main/AndroidManifest.xml"
+    val manifestFromSourcePath = moduleDir / "src/main/AndroidManifest.xml"
 
     val manifestElem = XML.loadFile(manifestFromSourcePath.toString())
     // add the application package
@@ -756,6 +734,32 @@ trait AndroidAppModule extends JavaModule {
     } yield PathRef(libRClassPath)
 
     libClasses :+ PathRef(mainRClassPath)
+  }
+
+  /**
+   * Creates an intermediate R.jar that includes all the resources from the application and its dependencies.
+   */
+  def androidProcessResources: Target[PathRef] = Task {
+
+    val sources = androidLibsRClasses()
+
+    val rJar = Task.dest / "R.jar"
+
+    val classesDest = zincWorker()
+      .worker()
+      .compileJava(
+        upstreamCompileOutput = upstreamCompileOutput(),
+        sources = sources.map(_.path),
+        compileClasspath = Seq.empty,
+        javacOptions = javacOptions() ++ mandatoryJavacOptions(),
+        reporter = Task.reporter.apply(hashCode),
+        reportCachedProblems = zincReportCachedProblems(),
+        incrementalCompilation = zincIncrementalCompilation()
+      ).get.classes.path
+
+    os.zip(rJar, Seq(classesDest))
+
+    PathRef(rJar)
   }
 
   /**

@@ -37,7 +37,7 @@ trait AndroidAppKotlinModule extends AndroidAppModule with KotlinModule { outer 
       Seq(
         // TODO expose Compose configuration options
         // https://kotlinlang.org/docs/compose-compiler-options.html possible options
-        s"-Xplugin=${composeProcessor().path}"
+        s"-Xplugin=${androidComposeProcessorResolvedDeps().path}"
       )
     } else Seq.empty
   }
@@ -47,16 +47,20 @@ trait AndroidAppKotlinModule extends AndroidAppModule with KotlinModule { outer 
    */
   def androidEnableCompose: T[Boolean] = false
 
-  private def composeProcessor = Task {
+  def androidComposeProcessorResolvedDeps = Task {
     // cut-off usages for Kotlin 1.x, because of the need to maintain the table of
     // Compose compiler version -> Kotlin version
     if (kotlinVersion().startsWith("1"))
       throw new IllegalStateException("Compose can be used only with Kotlin version 2 or newer.")
     defaultResolver().resolveDeps(
-      Seq(
-        ivy"org.jetbrains.kotlin:kotlin-compose-compiler-plugin:${kotlinVersion()}"
-      )
+      androidKotlinComposeCompilerPlugin()
     ).head
+  }
+
+  def androidKotlinComposeCompilerPlugin: T[Seq[Dep]] = Task {
+    Seq(
+      ivy"org.jetbrains.kotlin:kotlin-compose-compiler-plugin:${kotlinVersion()}"
+    )
   }
 
   trait AndroidAppKotlinTests extends AndroidAppTests with KotlinTests {
@@ -99,7 +103,7 @@ trait AndroidAppKotlinModule extends AndroidAppModule with KotlinModule { outer 
     override final def kotlinVersion = outer.kotlinVersion
 
     override def kotlincOptions = super.kotlincOptions() ++ Seq(
-      s"-Xplugin=${composeProcessor().path}"
+      s"-Xplugin=${androidComposeProcessorResolvedDeps().path}"
     )
 
     override def sources: T[Seq[PathRef]] = Task.Sources(

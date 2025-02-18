@@ -3,7 +3,7 @@ package build
 import mill._
 import mill.javalib.android.{AndroidSdkModule, AndroidTestModule}
 import mill.kotlinlib._
-import mill.kotlinlib.android.AndroidAppKotlinModule
+import mill.kotlinlib.android.{AndroidAppKotlinModule, AndroidHiltSupport}
 
 // Create and configure an Android SDK module to manage Android SDK paths and tools.
 object androidSdkModule0 extends AndroidSdkModule {
@@ -11,7 +11,9 @@ object androidSdkModule0 extends AndroidSdkModule {
 }
 
 // Actual android application
-object app extends AndroidAppKotlinModule {
+object app extends AndroidAppKotlinModule with AndroidHiltSupport {
+
+  def kspVersion = "1.0.28"
 
   def androidApplicationNamespace = "com.example.android.architecture.blueprints.todoapp"
   def androidApplicationId = "com.example.android.architecture.blueprints.main"
@@ -73,6 +75,26 @@ object app extends AndroidAppKotlinModule {
     ivy"androidx.room:room-compiler:2.6.1",
     ivy"com.google.dagger:hilt-android-compiler:2.53.1"
   )
+
+  def androidKotlinComposeCompilerPlugin: T[Seq[Dep]] = Task {
+    Seq(
+      ivy"org.jetbrains.kotlin:kotlin-compose-compiler-plugin-embeddable:${kotlinVersion()}"
+    )
+  }
+
+  def kotlincOptions = Task {
+    super.kotlincOptions() ++
+      Seq(
+        "-P", "plugin:com.google.devtools.ksp.symbol-processing:apoption=dagger.fastInit=enabled",
+        "-P", "plugin:com.google.devtools.ksp.symbol-processing:apoption=dagger.hilt.android.internal.disableAndroidSuperclassValidation=true",
+        "-P", "plugin:com.google.devtools.ksp.symbol-processing:apoption=dagger.hilt.android.internal.projectType=APP",
+        "-P", "plugin:com.google.devtools.ksp.symbol-processing:apoption=dagger.hilt.internal.useAggregatingRootProcessor=false",
+        "-opt-in=kotlin.RequiresOptIn",
+        "-opt-in=kotlin.Experimental",
+        "-opt-in=kotlin.RequiresOptIn",
+        "-opt-in=kotlin.Experimental"
+      )
+  }
 
   private val dependencyPinning = Map(
     "android.collection" -> "1.4.4",
