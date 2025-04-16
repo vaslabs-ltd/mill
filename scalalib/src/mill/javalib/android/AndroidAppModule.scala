@@ -750,6 +750,10 @@ trait AndroidAppModule extends AndroidModule {
     else
       throw new Exception("Device failed to boot")
   }
+  
+  def externalNativeLibs: T[Seq[PathRef]] = Task {
+    Seq.empty
+  }
 
   trait AndroidAppTests extends AndroidAppModule with JavaTests {
 
