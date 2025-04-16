@@ -32,7 +32,8 @@ object app extends AndroidAppModule {
   def androidReleaseKeyStorePass: T[Option[String]] = Task { Some("MillBuildTool") }
 
   override def androidVirtualDeviceIdentifier: String = "java-test"
-
+//na fiw to jvm exclude
+  // na kame compile classpath na ment o eshi mesa jvm core routines
   object test extends AndroidAppTests with TestModule.Junit4 {
     def testFramework = "com.novocode.junit.JUnitFramework"
     def mvnDeps = super.mvnDeps() ++ Seq(
