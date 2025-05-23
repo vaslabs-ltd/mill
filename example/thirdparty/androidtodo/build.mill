@@ -110,10 +110,46 @@ object app extends AndroidAppKotlinModule with AndroidBuildConfig with AndroidHi
     )
   }
 
-  // TODO support instrumented tests on Hilt setups
-  object androidTest extends AndroidAppKotlinInstrumentedTests
-      with AndroidTestModule.AndroidJUnit with AndroidHiltSupport {
+  object androidTest extends AndroidAppKotlinInstrumentedTests with AndroidHiltSupport {
+
+    override def kotlinLanguageVersion = Versions.kotlinLanguageVersion
+
+    def moduleDeps = super.moduleDeps ++ Seq(`shared-test`)
+
+    def testFramework = "com.example.android.architecture.blueprints.todoapp.CustomTestRunner"
+
+    def androidEnableCompose = true
+
+    def debugSources = Task.Sources("src/debug/java")
+    override def sources = super.sources() ++ debugSources()
+
     override def kspVersion = Versions.kspVersion
+
+    override def kspSources = super.kspSources()
+
+    def mvnDeps = super.mvnDeps() ++ Seq(
+      mvn"junit:junit:4.13.2",
+      mvn"androidx.compose:compose-bom:2024.12.01",
+      mvn"org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0",
+      mvn"androidx.compose.ui:ui-test-junit4:1.7.6",
+      mvn"androidx.test:core-ktx:1.6.1",
+      mvn"androidx.test.ext:junit-ktx:1.2.1",
+      mvn"androidx.test:rules:1.6.1",
+      mvn"androidx.room:room-testing:2.6.1",
+      mvn"androidx.arch.core:core-testing:2.2.0",
+      mvn"androidx.navigation:navigation-testing:2.8.5",
+      mvn"androidx.test.espresso:espresso-core:3.6.1",
+      mvn"androidx.test.espresso:espresso-contrib:3.6.1",
+      mvn"androidx.test.espresso:espresso-intents:3.6.1",
+      mvn"androidx.test.espresso:espresso-idling-resource:3.6.1",
+      mvn"androidx.test.espresso.idling:idling-concurrent:3.6.1",
+      mvn"com.google.dagger:hilt-android-testing:2.56"
+    )
+
+    def kotlinSymbolProcessors: T[Seq[Dep]] = Seq(
+      mvn"androidx.room:room-compiler:2.6.1",
+      mvn"com.google.dagger:hilt-android-compiler:2.56"
+    )
 
   }
 

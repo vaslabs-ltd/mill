@@ -53,12 +53,15 @@ trait AndroidModule extends JavaModule {
     <uses-sdk android:minSdkVersion={minSdkVersion} />
   }
 
+  def androidManifestLocation: T[PathRef] = Task.Source("src/main/AndroidManifest.xml")
+  def androidDebugManifestLocation: T[PathRef] = Task.Source("src/debug/AndroidManifest.xml")
+
   /**
    * Provides os.Path to an XML file containing configuration and metadata about your android application.
    * TODO dynamically add android:debuggable
    */
   def androidManifest: T[PathRef] = Task {
-    val manifestFromSourcePath = moduleDir / "src/main/AndroidManifest.xml"
+    val manifestFromSourcePath = androidManifestLocation().path
 
     val manifestElem = XML.loadFile(manifestFromSourcePath.toString()) %
       Attribute(None, "xmlns:android", Text("http://schemas.android.com/apk/res/android"), Null)

@@ -92,7 +92,7 @@ trait AndroidAppModule extends AndroidModule { outer =>
    * TODO dynamically add android:debuggable
    */
   override def androidManifest: T[PathRef] = Task {
-    val manifestFromSourcePath = moduleDir / "src/main/AndroidManifest.xml"
+    val manifestFromSourcePath = androidManifestLocation().path
 
     val manifestElem = XML.loadFile(manifestFromSourcePath.toString())
     // add the application package
@@ -277,7 +277,12 @@ trait AndroidAppModule extends AndroidModule { outer =>
    * See [[https://developer.android.com/build/manage-manifests]] for more details.
    */
   def androidMergedManifest: T[PathRef] = Task {
-    val libManifests = androidUnpackArchives().flatMap(_.manifest)
+    val libManifests = androidUnpackArchives().flatMap(_.manifest.map(_.path))
+
+    val debugManifest = Option.when(androidIsDebug())(androidDebugManifestLocation().path)
+
+    val allManifests = libManifests ++ debugManifest.toSeq
+
     val mergedManifestPath = Task.dest / "AndroidManifest.xml"
     // TODO put it to the dedicated worker if cost of classloading is too high
     Jvm.callProcess(
@@ -296,7 +301,7 @@ trait AndroidAppModule extends AndroidModule { outer =>
         s"version_name=${androidVersionName()}",
         "--out",
         mergedManifestPath.toString()
-      ) ++ libManifests.flatMap(m => Seq("--libs", m.path.toString())),
+      ) ++ allManifests.flatMap(m => Seq("--libs", m.toString)),
       classPath = manifestMergerClasspath().map(_.path).toVector,
       stdin = os.Inherit,
       stdout = os.Inherit
@@ -683,7 +688,7 @@ trait AndroidAppModule extends AndroidModule { outer =>
    */
   def androidReleaseKeyPath: T[Seq[PathRef]] = {
     val subPaths = androidReleaseKeyName.map(os.sub / _).toSeq
-    Task.Sources(subPaths: _*)
+    Task.Sources(subPaths*)
   }
 
   /*
@@ -1194,9 +1199,23 @@ trait AndroidAppModule extends AndroidModule { outer =>
 
     }
 
+    /**
+     * The androidTestClasspath dictates what we are going to package
+     * in the test apk. This should have all moduleDeps except the main AndroidAppModule
+     * as its apk is installed separately
+     */
+    def androidTransitiveTestClasspath: T[Seq[PathRef]] = Task {
+      Task.traverse(transitiveModuleCompileModuleDeps) {
+        case m: AndroidAppModule =>
+          Task.Anon(Seq.empty[PathRef])
+        case m: JavaModule =>
+          Task.Anon(m.localRunClasspath())
+      }().flatten
+    }
+
     /** The instrumented dex should just contain the test dependencies and locally tested files */
     override def androidPackagedClassfiles: T[Seq[PathRef]] = Task {
-      testClasspath()
+      (testClasspath() ++ androidTransitiveTestClasspath())
         .map(_.path).filter(os.isDir)
         .flatMap(os.walk(_))
         .filter(os.isFile)
