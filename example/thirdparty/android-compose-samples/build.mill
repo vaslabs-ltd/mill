@@ -1,0 +1,79 @@
+import mill._, androidlib._, kotlinlib._
+import hilt.AndroidHiltSupport
+
+object Versions {
+  val kotlinVersion = "2.1.20"
+  val kotlinLanguageVersion = "1.9"
+
+  val kspVersion = "1.0.28"
+  val androidCompileSdk = 35
+  val androidMinSdk = 26
+  val androidLifecycleCompose = "2.9.0"
+  val androidXNavigation = "2.9.0"
+  val androidXComposeVersion = "1.8.1"
+}
+
+// Create and configure an Android SDK module to manage Android SDK paths and tools.
+object androidSdkModule0 extends AndroidSdkModule {
+  def buildToolsVersion = "35.0.0"
+}
+
+object JetLagged extends mill.define.Module {
+  object app extends AndroidAppKotlinModule with AndroidR8AppModule with AndroidBuildConfig {
+    def kotlinVersion = Versions.kotlinVersion
+
+    def kotlinLanguageVersion = Versions.kotlinLanguageVersion
+
+    def kspVersion = Versions.kspVersion
+
+    override def androidDebugSettings: T[AndroidBuildTypeSettings] = Task {
+      super.androidDebugSettings().withDefaultProguardFile("proguard-android-optimize.txt")
+        .withProguardLocalFiles(
+          Seq(
+            moduleDir / "proguard-rules.pro"
+          )
+        )
+    }
+
+    override def androidApplicationNamespace = "com.example.jetlagged"
+
+    override def androidApplicationId = "com.example.jetlagged"
+
+    def mvnDeps = super.mvnDeps() ++ Seq(
+      mvn"androidx.compose:compose-bom:2025.05.00",
+      mvn"org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2",
+      mvn"androidx.core:core-ktx:1.16.0",
+      mvn"androidx.activity:activity-compose:1.10.1",
+      mvn"androidx.lifecycle:lifecycle-viewmodel-compose:${Versions.androidLifecycleCompose}",
+      mvn"androidx.lifecycle:lifecycle-runtime-ktx:${Versions.androidLifecycleCompose}",
+      mvn"androidx.lifecycle:lifecycle-runtime-compose:${Versions.androidLifecycleCompose}",
+      mvn"androidx.navigation:navigation-compose:${Versions.androidXNavigation}",
+      mvn"androidx.constraintlayout:constraintlayout-compose:1.1.1",
+      mvn"io.coil-kt:coil-compose:2.7.0",
+      // TODO the below dependencies are declared without version in AGP
+      // version is resolved from compose-bom
+      mvn"androidx.compose.runtime:runtime:${Versions.androidXComposeVersion}",
+      mvn"androidx.compose.foundation:foundation:${Versions.androidXComposeVersion}",
+      mvn"androidx.compose.foundation:foundation-layout:${Versions.androidXComposeVersion}",
+      mvn"androidx.compose.ui:ui-util:${Versions.androidXComposeVersion}",
+      mvn"androidx.compose.material3:material3:${Versions.androidXComposeVersion}",
+      mvn"androidx.compose.animation:animation:${Versions.androidXComposeVersion}",
+      mvn"androidx.compose.material:material-icons-extended:${Versions.androidXComposeVersion}",
+      mvn"androidx.compose.material3:material3-window-size-class:${Versions.androidXComposeVersion}",
+      mvn"androidx.compose.ui:ui-text-google-fonts:${Versions.androidXComposeVersion}",
+      mvn"androidx.compose.ui:ui-tooling-preview:${Versions.androidXComposeVersion}",
+      //debug dependencies
+      mvn"androidx.compose.ui:ui-tooling:${Versions.androidXComposeVersion}",
+      mvn"androidx.compose.ui:ui-test-manifest:${Versions.androidXComposeVersion}"
+    )
+
+    def androidEnableCompose = true
+
+    def androidSdkModule = mill.define.ModuleRef(androidSdkModule0)
+
+    def androidCompileSdk = Versions.androidCompileSdk
+
+    def androidMinSdk = Versions.androidMinSdk
+
+  }
+}
