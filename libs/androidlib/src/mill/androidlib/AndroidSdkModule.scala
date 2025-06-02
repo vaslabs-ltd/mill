@@ -38,11 +38,6 @@ trait AndroidSdkModule extends Module {
   def bundleToolVersion: T[String] = "1.17.2"
 
   /**
-   * Specifies the version of the Manifest Merger.
-   */
-  def manifestMergerVersion: T[String] = "31.10.0"
-
-  /**
    * Specifies the version of the Android build tools to be used.
    */
   def buildToolsVersion: T[String]

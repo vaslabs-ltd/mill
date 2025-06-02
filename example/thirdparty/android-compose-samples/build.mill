@@ -10,7 +10,7 @@ object Versions {
   val androidMinSdk = 26
   val androidLifecycleCompose = "2.9.0"
   val androidXNavigation = "2.9.0"
-  val androidXComposeVersion = "1.8.1"
+  val androidXComposeVersion = "_"
 }
 
 // Create and configure an Android SDK module to manage Android SDK paths and tools.
@@ -39,8 +39,12 @@ object JetLagged extends mill.define.Module {
 
     override def androidApplicationId = "com.example.jetlagged"
 
+    def bomMvnDeps = super.mvnDeps() ++ Seq(
+      mvn"androidx.compose:compose-bom:2025.05.00"
+    )
+
     def mvnDeps = super.mvnDeps() ++ Seq(
-      mvn"androidx.compose:compose-bom:2025.05.00",
+
       mvn"org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2",
       mvn"androidx.core:core-ktx:1.16.0",
       mvn"androidx.activity:activity-compose:1.10.1",
@@ -56,10 +60,10 @@ object JetLagged extends mill.define.Module {
       mvn"androidx.compose.foundation:foundation:${Versions.androidXComposeVersion}",
       mvn"androidx.compose.foundation:foundation-layout:${Versions.androidXComposeVersion}",
       mvn"androidx.compose.ui:ui-util:${Versions.androidXComposeVersion}",
-      mvn"androidx.compose.material3:material3:${Versions.androidXComposeVersion}",
+      mvn"androidx.compose.material3:material3:1.3.2",
       mvn"androidx.compose.animation:animation:${Versions.androidXComposeVersion}",
-      mvn"androidx.compose.material:material-icons-extended:${Versions.androidXComposeVersion}",
-      mvn"androidx.compose.material3:material3-window-size-class:${Versions.androidXComposeVersion}",
+      mvn"androidx.compose.material:material-icons-extended:1.7.8",
+      mvn"androidx.compose.material3:material3-window-size-class:1.3.2",
       mvn"androidx.compose.ui:ui-text-google-fonts:${Versions.androidXComposeVersion}",
       mvn"androidx.compose.ui:ui-tooling-preview:${Versions.androidXComposeVersion}",
       //debug dependencies
@@ -68,6 +72,8 @@ object JetLagged extends mill.define.Module {
     )
 
     def androidEnableCompose = true
+    override def kotlinUseEmbeddableCompiler: Task[Boolean] = Task { true }
+
 
     def androidSdkModule = mill.define.ModuleRef(androidSdkModule0)
 

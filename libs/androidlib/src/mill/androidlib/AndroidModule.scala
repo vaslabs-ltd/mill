@@ -158,8 +158,15 @@ trait AndroidModule extends JavaModule {
         VariantMatcher.AnyOf(Seq(
           VariantMatcher.Equals("androidJvm"),
           VariantMatcher.Equals("jvm")
-        ))
-    )
+        )),
+      "org.gradle.category" -> VariantMatcher.Library,
+      "org.gradle.jvm.environment" ->
+        VariantMatcher.AnyOf(Seq(
+          VariantMatcher.Equals("android"),
+          VariantMatcher.Equals("standard-jvm"),
+        )
+        ),
+    ).withForceDepMgmtVersions(Some(true))
   }
 
   /**
