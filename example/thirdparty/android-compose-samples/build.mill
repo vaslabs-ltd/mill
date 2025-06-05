@@ -60,14 +60,13 @@ object JetLagged extends mill.define.Module {
       mvn"androidx.compose.ui:ui-text",
       mvn"androidx.compose.ui:ui-graphics",
 
-      //debug dependencies
+      // debug dependencies
       mvn"androidx.compose.ui:ui-tooling",
       mvn"androidx.compose.ui:ui-test-manifest"
     )
 
     def androidEnableCompose = true
     override def kotlinUseEmbeddableCompiler: Task[Boolean] = Task { true }
-
 
     def androidSdkModule = mill.define.ModuleRef(androidSdkModule0)
 

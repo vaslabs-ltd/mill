@@ -83,7 +83,7 @@ trait AndroidAppModule extends AndroidModule {
   private def androidManifestUsesSdkSection: Task[Elem] = Task.Anon {
     val minSdkVersion = androidMinSdk().toString
     val targetSdkVersion = androidTargetSdk().toString
-      <uses-sdk android:minSdkVersion={minSdkVersion} android:targetSdkVersion={targetSdkVersion}/>
+    <uses-sdk android:minSdkVersion={minSdkVersion} android:targetSdkVersion={targetSdkVersion}/>
   }
 
   def androidDebugManifestLocation: T[PathRef] = Task.Source {
@@ -147,8 +147,8 @@ trait AndroidAppModule extends AndroidModule {
 
   @internal
   override def bspCompileClasspath(
-                                    needsToMergeResourcesIntoCompileDest: Boolean
-                                  ) = Task.Anon { (ev: EvaluatorApi) =>
+      needsToMergeResourcesIntoCompileDest: Boolean
+  ) = Task.Anon { (ev: EvaluatorApi) =>
     compileClasspath().map(
       _.path
     ).map(UnresolvedPath.ResolvedPath(_)).map(_.resolve(os.Path(ev.outPathJava))).map(sanitizeUri)
@@ -258,7 +258,7 @@ trait AndroidAppModule extends AndroidModule {
 
     ???
   }
-  
+
   /**
    * Packages DEX files and Android resources into an unsigned APK.
    *
@@ -695,7 +695,7 @@ trait AndroidAppModule extends AndroidModule {
    */
   def androidReleaseKeyPath: T[Seq[PathRef]] = {
     val subPaths = androidReleaseKeyName.map(os.sub / _).toSeq
-    Task.Sources(subPaths *)
+    Task.Sources(subPaths*)
   }
 
   /*
@@ -752,21 +752,21 @@ trait AndroidAppModule extends AndroidModule {
     // full list is here https://cs.android.com/android-studio/platform/tools/base/+/mirror-goog-studio-main:build-system/gradle-core/src/main/java/com/android/build/gradle/internal/packaging/PackagingOptionsUtils.kt;drc=85330e2f750acc1e1510623222d80e4b1ad5c8a2
     // but anyway it should be a packaging option DSL to configure additional excludes from the user side
     relPath.ext == "kotlin_module" ||
-      relPath.ext == "kotlin_metadata" ||
-      relPath.ext == "DSA" ||
-      relPath.ext == "EC" ||
-      relPath.ext == "SF" ||
-      relPath.ext == "RSA" ||
-      topPath == "maven" ||
-      topPath == "proguard" ||
-      topPath == "com.android.tools" ||
-      relPath.last == "MANIFEST.MF" ||
-      relPath.last == "LICENSE" ||
-      relPath.last == "LICENSE.TXT" ||
-      relPath.last == "NOTICE" ||
-      relPath.last == "NOTICE.TXT" ||
-      relPath.last == "kotlin-project-structure-metadata.json" ||
-      relPath.last == "module-info.class"
+    relPath.ext == "kotlin_metadata" ||
+    relPath.ext == "DSA" ||
+    relPath.ext == "EC" ||
+    relPath.ext == "SF" ||
+    relPath.ext == "RSA" ||
+    topPath == "maven" ||
+    topPath == "proguard" ||
+    topPath == "com.android.tools" ||
+    relPath.last == "MANIFEST.MF" ||
+    relPath.last == "LICENSE" ||
+    relPath.last == "LICENSE.TXT" ||
+    relPath.last == "NOTICE" ||
+    relPath.last == "NOTICE.TXT" ||
+    relPath.last == "kotlin-project-structure-metadata.json" ||
+    relPath.last == "module-info.class"
   }
 
   private def waitForDevice(adbPath: PathRef, emulator: String, logger: Logger): String = {
@@ -1051,9 +1051,9 @@ trait AndroidAppModule extends AndroidModule {
      * @return
      */
     override def testTask(
-                           args: Task[Seq[String]],
-                           globSelectors: Task[Seq[String]]
-                         ): Task[(msg: String, results: Seq[TestResult])] = Task.Anon {
+        args: Task[Seq[String]],
+        globSelectors: Task[Seq[String]]
+    ): Task[(msg: String, results: Seq[TestResult])] = Task.Anon {
       val device = androidTestInstall().apply()
 
       val instrumentOutput = os.proc(
@@ -1145,18 +1145,18 @@ trait AndroidAppModule extends AndroidModule {
  * @param publicResFile    path to public.txt file
  */
 case class UnpackedDep(
-                        name: String,
-                        classesJar: Option[PathRef],
-                        proguardRules: Option[PathRef],
-                        androidResources: Option[PathRef],
-                        manifest: Option[PathRef],
-                        lintJar: Option[PathRef],
-                        metaInf: Option[PathRef],
-                        nativeLibs: Option[PathRef],
-                        baselineProfile: Option[PathRef],
-                        rTxtFile: Option[PathRef],
-                        publicResFile: Option[PathRef]
-                      )
+    name: String,
+    classesJar: Option[PathRef],
+    proguardRules: Option[PathRef],
+    androidResources: Option[PathRef],
+    manifest: Option[PathRef],
+    lintJar: Option[PathRef],
+    metaInf: Option[PathRef],
+    nativeLibs: Option[PathRef],
+    baselineProfile: Option[PathRef],
+    rTxtFile: Option[PathRef],
+    publicResFile: Option[PathRef]
+)
 
 object UnpackedDep {
   implicit val rw: ReadWriter[UnpackedDep] = macroRW

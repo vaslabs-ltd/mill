@@ -29,5 +29,5 @@ object `package` extends MillPublishScalaModule {
       Deps.androidTools
     )
   }
-  
+
 }

@@ -149,9 +149,8 @@ trait AndroidModule extends JavaModule {
         VariantMatcher.AnyOf(Seq(
           VariantMatcher.Equals("android"),
           VariantMatcher.Equals("common"),
-          VariantMatcher.Equals("standard-jvm"),
-        )
-        )
+          VariantMatcher.Equals("standard-jvm")
+        ))
     )
   }
 
@@ -189,7 +188,6 @@ trait AndroidModule extends JavaModule {
   def androidResources: T[Seq[PathRef]] = Task.Sources {
     moduleDir / "src/main/res"
   }
-
 
   /**
    * Resolves run mvn deps using [[resolvedRunMvnDeps]] and transforms
@@ -408,7 +406,7 @@ trait AndroidModule extends JavaModule {
       androidVersionCode().toString,
       "--version-name",
       androidVersionName(),
-      "--proguard-conditional-keep-rules",
+      "--proguard-conditional-keep-rules"
     )
     val libDirs = os.list(compiledLibResources.path).filter(os.isDir).filter(
       os.list(_).exists(_.ext == "flat")
@@ -421,8 +419,10 @@ trait AndroidModule extends JavaModule {
         val manifest = libDir / "AndroidManifest.xml"
         val args = linkArgs ++
           Seq(
-            "--manifest", manifest.toString,
-            "--java", javaDest.toString
+            "--manifest",
+            manifest.toString,
+            "--java",
+            javaDest.toString
           ) ++
           flatFiles.flatMap(f => Seq("-R", f.toString())) ++ Seq("-o", out.toString)
         os.call(args).out.text()
@@ -481,7 +481,7 @@ trait AndroidModule extends JavaModule {
       androidVersionCode().toString,
       "--version-name",
       androidVersionName(),
-      "--proguard-conditional-keep-rules",
+      "--proguard-conditional-keep-rules"
     )
     val libDirs = os.list(compiledLibResources.path).filter(os.isDir).filter(
       os.list(_).exists(_.ext == "flat")
@@ -494,8 +494,10 @@ trait AndroidModule extends JavaModule {
         val manifest = libDir / "AndroidManifest.xml"
         val args = linkArgs ++
           Seq(
-            "--manifest", manifest.toString,
-            "--java", javaDest.toString
+            "--manifest",
+            manifest.toString,
+            "--java",
+            javaDest.toString
           ) ++
           flatFiles.flatMap(f => Seq("-R", f.toString())) ++ Seq("-o", out.toString)
         os.call(args).out.text()
@@ -541,11 +543,9 @@ trait AndroidModule extends JavaModule {
       os.call(compileArgsBuilder.result())
     }
 
-
     PathRef(compiledResDir)
 
   }
-
 
   private def androiLinkStaticLibArgs = Task {
     Seq(
@@ -562,9 +562,10 @@ trait AndroidModule extends JavaModule {
       androidVersionCode().toString,
       "--version-name",
       androidVersionName(),
-      "--proguard-conditional-keep-rules",
+      "--proguard-conditional-keep-rules"
     )
   }
+
   /**
    * Creates an apk of the compiled [[androidResources]] fetched from [[androidCompiledResources]]
    *
@@ -594,25 +595,24 @@ trait AndroidModule extends JavaModule {
       androidVersionCode().toString,
       "--version-name",
       androidVersionName(),
-      "--proguard-conditional-keep-rules",
+      "--proguard-conditional-keep-rules"
     )
     val flatFiles = os.walk(androidCompiledResources().path).filter(
       _.ext == "flat"
     )
 
-
     val args = linkArgs ++ Seq(
-      "--manifest", androidManifest().path.toString,
-      "--java", generatedSourcesDest.toString
+      "--manifest",
+      androidManifest().path.toString,
+      "--java",
+      generatedSourcesDest.toString
     ) ++ flatFiles.flatMap(f => Seq("-R", f.toString())) ++ Seq("-o", apkDest.toString)
 
     os.call(args).out.text()
 
-
     AndroidRes(buildDir = PathRef(apkDest), generatedSources = PathRef(generatedSourcesDest))
 
   }
-
 
   /**
    * Creates an intermediate R.jar that includes all the resources from the application and its dependencies.
