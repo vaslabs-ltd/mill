@@ -24,10 +24,6 @@ object JetLagged extends mill.define.Module {
 
     def androidIsDebug = true
 
-    override def androidDebugSettings: T[AndroidBuildTypeSettings] = Task {
-      super.androidDebugSettings()
-    }
-
     override def androidApplicationNamespace = "com.example.jetlagged"
 
     override def androidApplicationId = "com.example.jetlagged"
@@ -37,7 +33,6 @@ object JetLagged extends mill.define.Module {
     )
 
     def mvnDeps = super.mvnDeps() ++ Seq(
-      mvn"androidx.appcompat:appcompat:1.7.0",
       mvn"org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2",
       mvn"androidx.core:core-ktx:1.16.0",
       mvn"androidx.activity:activity-compose:1.10.1",
