@@ -53,7 +53,7 @@ trait AndroidR8AppModule extends AndroidAppModule {
   }
 
   def androidLibraryProguardConfigs: Task[Seq[PathRef]] = Task {
-    androidUnpackArchives()
+    androidUnpackedArchives()
       // TODO need also collect rules from other modules,
       // but Android lib module doesn't yet exist
       .flatMap(_.proguardRules)

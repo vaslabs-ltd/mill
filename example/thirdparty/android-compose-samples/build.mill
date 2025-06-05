@@ -17,7 +17,7 @@ object androidSdkModule0 extends AndroidSdkModule {
 }
 
 object JetLagged extends mill.define.Module {
-  object app extends AndroidAppKotlinModule with AndroidR8AppModule with AndroidBuildConfig {
+  object app extends AndroidAppKotlinModule with AndroidR8AppModule {
     def kotlinVersion = Versions.kotlinVersion
 
     def kotlinLanguageVersion = Versions.kotlinLanguageVersion

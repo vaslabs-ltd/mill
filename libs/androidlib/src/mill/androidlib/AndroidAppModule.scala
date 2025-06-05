@@ -52,15 +52,16 @@ object AndroidLintReportFormat extends Enumeration {
  * [[https://developer.android.com/studio Android Studio Documentation]]
  */
 @mill.api.experimental
-trait AndroidAppModule extends AndroidModule { outer =>
+trait AndroidAppModule extends AndroidModule {
+  outer =>
 
   protected val debugKeyStorePass = "mill-android"
   protected val debugKeyAlias = "mill-android"
   protected val debugKeyPass = "mill-android"
 
   /**
-   *   Every Android module has a namespace,
-   *   which is used as the Kotlin or Java package name for its generated R and BuildConfig classes.
+   * Every Android module has a namespace,
+   * which is used as the Kotlin or Java package name for its generated R and BuildConfig classes.
    *
    * See more in [[https://developer.android.com/build/configure-app-module#set-namespace]]
    */
@@ -68,6 +69,7 @@ trait AndroidAppModule extends AndroidModule { outer =>
 
   /**
    * In the case of android apps this the [[androidApplicationNamespace]].
+   *
    * @return
    */
   override final def androidNamespace: String = androidApplicationNamespace
@@ -81,7 +83,7 @@ trait AndroidAppModule extends AndroidModule { outer =>
   private def androidManifestUsesSdkSection: Task[Elem] = Task.Anon {
     val minSdkVersion = androidMinSdk().toString
     val targetSdkVersion = androidTargetSdk().toString
-    <uses-sdk android:minSdkVersion={minSdkVersion} android:targetSdkVersion={targetSdkVersion}/>
+      <uses-sdk android:minSdkVersion={minSdkVersion} android:targetSdkVersion={targetSdkVersion}/>
   }
 
   def androidDebugManifestLocation: T[PathRef] = Task.Source {
@@ -112,17 +114,23 @@ trait AndroidAppModule extends AndroidModule { outer =>
    * and [[AndroidLintReportFormat.Sarif]].
    */
   def androidLintReportFormat: T[Seq[AndroidLintReportFormat.Value]] =
-    Task { Seq(AndroidLintReportFormat.Html) }
+    Task {
+      Seq(AndroidLintReportFormat.Html)
+    }
 
   /**
    * Specifies the lint configuration XML file path. This allows setting custom lint rules or modifying existing ones.
    */
-  def androidLintConfigPath: T[Option[PathRef]] = Task { None }
+  def androidLintConfigPath: T[Option[PathRef]] = Task {
+    None
+  }
 
   /**
    * Specifies the lint baseline XML file path. This allows using a baseline to suppress known lint warnings.
    */
-  def androidLintBaselinePath: T[Option[PathRef]] = Task { None }
+  def androidLintBaselinePath: T[Option[PathRef]] = Task {
+    None
+  }
 
   /**
    * Determines whether the build should fail if Android Lint detects any issues.
@@ -133,12 +141,14 @@ trait AndroidAppModule extends AndroidModule { outer =>
    * Specifies additional arguments for the Android Lint tool.
    * Allows for complete customization of the lint command.
    */
-  def androidLintArgs: T[Seq[String]] = Task { Seq.empty[String] }
+  def androidLintArgs: T[Seq[String]] = Task {
+    Seq.empty[String]
+  }
 
   @internal
   override def bspCompileClasspath(
-      needsToMergeResourcesIntoCompileDest: Boolean
-  ) = Task.Anon { (ev: EvaluatorApi) =>
+                                    needsToMergeResourcesIntoCompileDest: Boolean
+                                  ) = Task.Anon { (ev: EvaluatorApi) =>
     compileClasspath().map(
       _.path
     ).map(UnresolvedPath.ResolvedPath(_)).map(_.resolve(os.Path(ev.outPathJava))).map(sanitizeUri)
@@ -162,7 +172,7 @@ trait AndroidAppModule extends AndroidModule { outer =>
    * the Android resource generation step.
    */
   override def generatedSources: T[Seq[PathRef]] = Task {
-    androidLibsRClasses()
+    Seq(androidCompiledResourcesApk().generatedSources)
   }
 
   /**
@@ -217,7 +227,9 @@ trait AndroidAppModule extends AndroidModule { outer =>
    * automatically included in the build process like native libraries .so files.
    */
   def androidPackageableExtraFiles: T[Seq[AndroidPackageableExtraFile]] =
-    Task { Seq.empty[AndroidPackageableExtraFile] }
+    Task {
+      Seq.empty[AndroidPackageableExtraFile]
+    }
 
   def androidPackageMetaInfoFiles: T[Seq[AndroidPackageableExtraFile]] = Task {
     def metaInfRoot(p: os.Path): os.Path = {
@@ -238,6 +250,15 @@ trait AndroidAppModule extends AndroidModule { outer =>
 
   }
 
+  def androidResApk: T[PathRef] = Task {
+    val dependencyResApks = os.walk(androidLinkedRunLibResources().buildDir.path)
+      .filter(_.ext == "apk")
+
+    val androidResourcesFromUserModules = androidCompiledResources()
+
+    ???
+  }
+  
   /**
    * Packages DEX files and Android resources into an unsigned APK.
    *
@@ -246,7 +267,7 @@ trait AndroidAppModule extends AndroidModule { outer =>
   def androidUnsignedApk: T[PathRef] = Task {
     val unsignedApk = Task.dest / "app.unsigned.apk"
 
-    os.copy(androidCompiledResources().resApkFile.path, unsignedApk)
+    os.copy(androidResApk().path, unsignedApk)
     val dexFiles = os.walk(androidDex().path)
       .filter(_.ext == "dex")
       .map(os.zip.ZipSource.fromPath)
@@ -281,7 +302,7 @@ trait AndroidAppModule extends AndroidModule { outer =>
 
   override def androidMergeableManifests: Task[Seq[PathRef]] = Task {
     val debugManifest = Seq(androidDebugManifestLocation()).filter(pr => os.exists(pr.path))
-    val libManifests = androidUnpackArchives().flatMap(_.manifest)
+    val libManifests = androidUnpackedArchives().flatMap(_.manifest)
     debugManifest ++ libManifests
   }
 
@@ -483,8 +504,8 @@ trait AndroidAppModule extends AndroidModule { outer =>
 
   /**
    * The target architecture of the virtual device to be created by  [[createAndroidVirtualDevice]]
-   *  For example, "x86_64" (default). For a list of system images and their architectures,
-   *  see the Android SDK Manager `sdkmanager --list`.
+   * For example, "x86_64" (default). For a list of system images and their architectures,
+   * see the Android SDK Manager `sdkmanager --list`.
    */
   def androidEmulatorArchitecture: String = "x86_64"
 
@@ -646,6 +667,7 @@ trait AndroidAppModule extends AndroidModule { outer =>
    * E.g. `com.package.name.ActivityName`
    *
    * See also [[https://developer.android.com/tools/adb#am]] and [[https://developer.android.com/tools/adb#IntentSpec]]
+   *
    * @param activity
    * @return
    */
@@ -673,7 +695,7 @@ trait AndroidAppModule extends AndroidModule { outer =>
    */
   def androidReleaseKeyPath: T[Seq[PathRef]] = {
     val subPaths = androidReleaseKeyName.map(os.sub / _).toSeq
-    Task.Sources(subPaths*)
+    Task.Sources(subPaths *)
   }
 
   /*
@@ -730,25 +752,26 @@ trait AndroidAppModule extends AndroidModule { outer =>
     // full list is here https://cs.android.com/android-studio/platform/tools/base/+/mirror-goog-studio-main:build-system/gradle-core/src/main/java/com/android/build/gradle/internal/packaging/PackagingOptionsUtils.kt;drc=85330e2f750acc1e1510623222d80e4b1ad5c8a2
     // but anyway it should be a packaging option DSL to configure additional excludes from the user side
     relPath.ext == "kotlin_module" ||
-    relPath.ext == "kotlin_metadata" ||
-    relPath.ext == "DSA" ||
-    relPath.ext == "EC" ||
-    relPath.ext == "SF" ||
-    relPath.ext == "RSA" ||
-    topPath == "maven" ||
-    topPath == "proguard" ||
-    topPath == "com.android.tools" ||
-    relPath.last == "MANIFEST.MF" ||
-    relPath.last == "LICENSE" ||
-    relPath.last == "LICENSE.TXT" ||
-    relPath.last == "NOTICE" ||
-    relPath.last == "NOTICE.TXT" ||
-    relPath.last == "kotlin-project-structure-metadata.json" ||
-    relPath.last == "module-info.class"
+      relPath.ext == "kotlin_metadata" ||
+      relPath.ext == "DSA" ||
+      relPath.ext == "EC" ||
+      relPath.ext == "SF" ||
+      relPath.ext == "RSA" ||
+      topPath == "maven" ||
+      topPath == "proguard" ||
+      topPath == "com.android.tools" ||
+      relPath.last == "MANIFEST.MF" ||
+      relPath.last == "LICENSE" ||
+      relPath.last == "LICENSE.TXT" ||
+      relPath.last == "NOTICE" ||
+      relPath.last == "NOTICE.TXT" ||
+      relPath.last == "kotlin-project-structure-metadata.json" ||
+      relPath.last == "module-info.class"
   }
 
   private def waitForDevice(adbPath: PathRef, emulator: String, logger: Logger): String = {
     val BootedIndicator = "1"
+
     def getBootflag: String = {
       val result = os.call(
         (
@@ -814,13 +837,13 @@ trait AndroidAppModule extends AndroidModule { outer =>
       .map(_.path.toString())
 
     val proguardFile = Task.dest / "proguard-rules.pro"
-    val knownProguardRules = androidUnpackArchives()
+    val knownProguardRules = androidUnpackedArchives()
       // TODO need also collect rules from other modules,
       // but Android lib module doesn't yet exist
       .flatMap(_.proguardRules)
       .map(p => os.read(p.path))
       .appendedAll(mainDexPlatformRules)
-      .appended(os.read(androidCompiledResources().mainDexRulesProFile.path))
+//      .appended(os.read(androidCompiledResources().mainDexRulesProFile.path))
       .mkString("\n")
     os.write(proguardFile, knownProguardRules)
 
@@ -855,9 +878,13 @@ trait AndroidAppModule extends AndroidModule { outer =>
   trait AndroidAppTests extends AndroidAppModule with JavaTests {
 
     override def androidCompileSdk: T[Int] = outer.androidCompileSdk()
+
     override def androidMinSdk: T[Int] = outer.androidMinSdk()
+
     override def androidTargetSdk: T[Int] = outer.androidTargetSdk()
+
     override def androidSdkModule: ModuleRef[AndroidSdkModule] = outer.androidSdkModule
+
     override def androidManifest: T[PathRef] = outer.androidManifest()
 
     override def androidApplicationId: String = s"${outer.androidApplicationId}.test"
@@ -867,6 +894,7 @@ trait AndroidAppModule extends AndroidModule { outer =>
     override def moduleDir: Path = outer.moduleDir
 
     override def sources: T[Seq[PathRef]] = Task.Sources("src/test/java")
+
     def androidResources: T[Seq[PathRef]] = Task.Sources()
 
     override def bspBuildTarget: BspBuildTarget = super.bspBuildTarget.copy(
@@ -882,20 +910,29 @@ trait AndroidAppModule extends AndroidModule { outer =>
     override def moduleDeps: Seq[JavaModule] = Seq(outer)
 
     override def androidCompileSdk: T[Int] = outer.androidCompileSdk()
+
     override def androidMinSdk: T[Int] = outer.androidMinSdk()
+
     override def androidTargetSdk: T[Int] = outer.androidTargetSdk()
 
-    override def androidIsDebug: T[Boolean] = Task { true }
+    override def androidIsDebug: T[Boolean] = Task {
+      true
+    }
 
     override def resolutionParams: Task[ResolutionParams] = Task.Anon(outer.resolutionParams())
 
     override def androidApplicationId: String = s"${outer.androidApplicationId}.test"
+
     override def androidApplicationNamespace: String = s"${outer.androidApplicationNamespace}.test"
 
     override def androidReleaseKeyAlias: T[Option[String]] = outer.androidReleaseKeyAlias()
+
     override def androidReleaseKeyName: Option[String] = outer.androidReleaseKeyName
+
     override def androidReleaseKeyPass: T[Option[String]] = outer.androidReleaseKeyPass()
+
     override def androidReleaseKeyStorePass: T[Option[String]] = outer.androidReleaseKeyStorePass()
+
     override def androidReleaseKeyPath: T[Seq[PathRef]] = outer.androidReleaseKeyPath()
 
     override def androidEmulatorPort: String = outer.androidEmulatorPort
@@ -911,15 +948,13 @@ trait AndroidAppModule extends AndroidModule { outer =>
       val instrumentationName = testFramework()
 
       <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-                package={
-        androidApplicationId
-      }>
+                package={androidApplicationId}>
 
         <application>
           <uses-library android:name="android.test.runner"/>
         </application>
 
-        <instrumentation android:name= {instrumentationName}
+        <instrumentation android:name={instrumentationName}
                          android:handleProfiling="false"
                          android:functionalTest="false"
                          android:label={label}/>
@@ -929,6 +964,7 @@ trait AndroidAppModule extends AndroidModule { outer =>
     /**
      * The android manifest of the instrumented tests
      * has a different package from the app to differentiate installations
+     *
      * @return
      */
     override def androidManifest: T[PathRef] = Task {
@@ -938,7 +974,7 @@ trait AndroidAppModule extends AndroidModule { outer =>
     }
 
     private def androidxTestManifests: Task[Seq[PathRef]] = Task {
-      androidUnpackArchives().flatMap {
+      androidUnpackedArchives().flatMap {
         unpackedArchive =>
           unpackedArchive.manifest.map(_.path)
       }.filter {
@@ -979,12 +1015,14 @@ trait AndroidAppModule extends AndroidModule { outer =>
     }
 
     override def androidVirtualDeviceIdentifier: String = outer.androidVirtualDeviceIdentifier
+
     override def androidEmulatorArchitecture: String = outer.androidEmulatorArchitecture
 
     def testFramework: T[String]
 
     /**
      * Re/Installs the app apk and then the test apk on the [[runningEmulator]]
+     *
      * @return
      */
     def androidTestInstall(): Command[String] = Task.Command {
@@ -1007,14 +1045,15 @@ trait AndroidAppModule extends AndroidModule { outer =>
     /**
      * Runs the tests on the [[runningEmulator]] with the [[androidTestApk]]
      * against the [[androidApk]]
+     *
      * @param args
      * @param globSelectors
      * @return
      */
     override def testTask(
-        args: Task[Seq[String]],
-        globSelectors: Task[Seq[String]]
-    ): Task[(msg: String, results: Seq[TestResult])] = Task.Anon {
+                           args: Task[Seq[String]],
+                           globSelectors: Task[Seq[String]]
+                         ): Task[(msg: String, results: Seq[TestResult])] = Task.Anon {
       val device = androidTestInstall().apply()
 
       val instrumentOutput = os.proc(
@@ -1089,33 +1128,35 @@ trait AndroidAppModule extends AndroidModule { outer =>
 
 // TODO this maybe not needed at all, maybe it is better just to return the list of the root folders and then reference
 //  each item type manually.
+
 /**
  * Descriptor of unpacked `.aar` dependency structure.
- * @param name dependency name
- * @param classesJar path to the classes.jar
- * @param proguardRules path to the proguard rules
+ *
+ * @param name             dependency name
+ * @param classesJar       path to the classes.jar
+ * @param proguardRules    path to the proguard rules
  * @param androidResources path to the res folder
- * @param manifest path to the AndroidManifest.xml
- * @param lintJar path to the lint.jar file
- * @param metaInf path to the META-INF folder
- * @param nativeLibs path to the native .so libraries root folder
- * @param baselineProfile path to the baseline profile file
- * @param rTxtFile path to the R.txt
- * @param publicResFile path to public.txt file
+ * @param manifest         path to the AndroidManifest.xml
+ * @param lintJar          path to the lint.jar file
+ * @param metaInf          path to the META-INF folder
+ * @param nativeLibs       path to the native .so libraries root folder
+ * @param baselineProfile  path to the baseline profile file
+ * @param rTxtFile         path to the R.txt
+ * @param publicResFile    path to public.txt file
  */
 case class UnpackedDep(
-    name: String,
-    classesJar: Option[PathRef],
-    proguardRules: Option[PathRef],
-    androidResources: Option[PathRef],
-    manifest: Option[PathRef],
-    lintJar: Option[PathRef],
-    metaInf: Option[PathRef],
-    nativeLibs: Option[PathRef],
-    baselineProfile: Option[PathRef],
-    rTxtFile: Option[PathRef],
-    publicResFile: Option[PathRef]
-)
+                        name: String,
+                        classesJar: Option[PathRef],
+                        proguardRules: Option[PathRef],
+                        androidResources: Option[PathRef],
+                        manifest: Option[PathRef],
+                        lintJar: Option[PathRef],
+                        metaInf: Option[PathRef],
+                        nativeLibs: Option[PathRef],
+                        baselineProfile: Option[PathRef],
+                        rTxtFile: Option[PathRef],
+                        publicResFile: Option[PathRef]
+                      )
 
 object UnpackedDep {
   implicit val rw: ReadWriter[UnpackedDep] = macroRW
