@@ -256,24 +256,34 @@ trait AndroidAppModule extends AndroidModule {
       .map(PathRef(_))
   }
 
+  // TODO check if we can reuse https://android.googlesource.com/platform/tools/base/+/refs/heads/mirror-goog-studio-main/sdk-common/src/main/java/com/android/ide/common/resources/
+  // to implement proper resource merging
+  /**
+   * This method is supposed to merge all the flat files, but
+   * at the moment is not using any merge algorithm (as it's not implemented yet).
+   */
+  def androidMergedFlatFiles: Task[Seq[PathRef]] = Task {
+    (os.walk(androidRunLibResources().path).filter(_.ext == "flat") ++
+      os.walk(androidCompiledResources().path).filter(_.ext == "flat") ++
+      androidTransitiveCompiledResources().flatMap(pr => os.walk(pr.path))
+        .filter(_.ext == "flat")).map(PathRef(_))
+  }
+
   /**
    * Builds an uber res.apk with all the resources, needed to run the
    * android app using [[androidCompiledResourcesApk]] and [[androidRunLibResources]]
    * @return
    */
   def androidResApk: T[PathRef] = Task {
-    val resProtoOut = Task.dest / "res-proto.apk"
+
     val resOut = Task.dest / "res.apk"
 
     val aapt2Args = Seq(
       androidSdkModule().aapt2Path().path.toString,
       "link",
       "-I",
-      androidSdkModule().androidJarPath().path.toString
-    ) ++ androidResPackagableApks().map(_.path.toString).flatMap(apk => Seq("-I", apk)) ++ Seq(
-      "--merge-only",
+      androidSdkModule().androidJarPath().path.toString,
       "--auto-add-overlay",
-      "--static-lib",
       "--manifest",
       androidMergedManifest().path.toString,
       "--min-sdk-version",
@@ -287,24 +297,13 @@ trait AndroidAppModule extends AndroidModule {
       "--proguard-conditional-keep-rules",
       "--proguard-minimal-keep-rules",
       "-o",
-      resProtoOut.toString
-    ) ++ Option.when(androidIsDebug())("--debug-mode")
-
-    os.call(aapt2Args)
-
-    val convertArgs = Seq(
-      androidSdkModule().aapt2Path().path.toString,
-      "convert",
-      "-o",
-      resOut.toString,
-      "--output-format",
-      "binary",
-      "--keep-raw-values",
-      resProtoOut.toString
+      resOut.toString
+    ) ++ Option.when(androidIsDebug())("--debug-mode") ++ androidMergedFlatFiles().map(pr =>
+      pr.path.toString
     )
 
-    os.call(convertArgs)
-
+    Task.log.debug(s"Run aapt2 command: ${aapt2Args.mkString(" ")}")
+    os.call(aapt2Args)
 
     PathRef(resOut)
 

@@ -437,8 +437,6 @@ trait AndroidModule extends JavaModule {
     val linkArgs = Seq(
       androidSdkModule().aapt2Path().path.toString,
       "link",
-      "--static-lib",
-      "--merge-only",
       "-I",
       androidSdkModule().androidJarPath().path.toString,
       "--auto-add-overlay",
@@ -512,8 +510,6 @@ trait AndroidModule extends JavaModule {
     val linkArgs = Seq(
       androidSdkModule().aapt2Path().path.toString,
       "link",
-      "--static-lib",
-      "--merge-only",
       "-I",
       androidSdkModule().androidJarPath().path.toString,
       "--auto-add-overlay",
@@ -600,25 +596,6 @@ trait AndroidModule extends JavaModule {
     }().flatten
   }
 
-  private def androiLinkStaticLibArgs = Task {
-    Seq(
-      androidSdkModule().aapt2Path().path.toString,
-      "link",
-      "-I",
-      androidSdkModule().androidJarPath().path.toString,
-      "--auto-add-overlay",
-      "--min-sdk-version",
-      androidMinSdk().toString,
-      "--target-sdk-version",
-      androidTargetSdk().toString,
-      "--version-code",
-      androidVersionCode().toString,
-      "--version-name",
-      androidVersionName(),
-      "--proguard-conditional-keep-rules"
-    )
-  }
-
   /**
    * Creates an apk of the compiled [[androidResources]] fetched from [[androidCompiledResources]]
    *
@@ -637,7 +614,6 @@ trait AndroidModule extends JavaModule {
       "link",
       "-I",
       androidSdkModule().androidJarPath().path.toString,
-      "--static-lib",
       "--custom-package",
       androidNamespace,
       "--auto-add-overlay",
