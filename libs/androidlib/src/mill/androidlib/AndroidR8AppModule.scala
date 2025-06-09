@@ -153,12 +153,8 @@ trait AndroidR8AppModule extends AndroidAppModule {
       .filter(_.path.ext == "class")
       .map(_.path.toString)
 
-    val appCompiledFiles: Seq[String] = androidPackagedCompiledClasses()
-      .filter(_.path.ext == "class")
-      .map(_.path.toString)
-
     val allClassFiles =
-      classpathClassFiles ++ appCompiledFiles ++ androidPackagedDeps().map(_.path.toString)
+      classpathClassFiles ++ androidPackagedDeps().map(_.path.toString)
 
     val r8ArgsBuilder = Seq.newBuilder[String]
 

@@ -206,7 +206,7 @@ trait AndroidModule extends JavaModule {
   override def compileClasspath: T[Seq[PathRef]] = Task {
 
     // TODO support baseline profiles shipped with Android libs.
-    (androidOriginalCompileClasspath().filter(_.path.ext != "aar")
+    (androidOriginalCompileClasspath().filter(pr => pr.path.ext != "aar")
       ++ androidResolvedMvnDeps() ++ androidRTransitiveClasspath() ++ Seq(
         androidCompiledRClasses().classes
       )).map(
@@ -215,11 +215,13 @@ trait AndroidModule extends JavaModule {
   }
 
   override def runClasspath: T[Seq[PathRef]] =
-    (androidOriginalRunClasspath().filter(_.path.ext != "aar")
+    (androidOriginalRunClasspath().filter(pr => pr.path.ext != "aar")
       ++ androidResolvedMvnDeps() ++ androidRTransitiveClasspath() ++ Seq(
         androidCompiledRClasses().classes,
-        androidRunLibResources()
-      ))
+        androidRunCompiledRClasses().classes
+      )).map(
+      _.path
+    ).distinct.map(PathRef(_))
 
   /**
    * Android res folder
@@ -453,7 +455,7 @@ trait AndroidModule extends JavaModule {
       os.list(_).exists(_.ext == "flat")
     )
 
-    libDirs.foreach {
+    libDirs.flatMap {
       libDir =>
         val flatFiles = os.list(libDir).filter(_.ext == "flat")
         val out = linkedResDir / s"${libDir.last}.apk"
@@ -696,7 +698,7 @@ trait AndroidModule extends JavaModule {
 
   /** All individual classfiles inherited from the classpath that will be included into the dex */
   def androidPackagedClassfiles: T[Seq[PathRef]] = Task {
-    compileClasspath()
+    runClasspath()
       .map(_.path).filter(os.isDir)
       .flatMap(os.walk(_))
       .filter(os.isFile)
@@ -704,14 +706,8 @@ trait AndroidModule extends JavaModule {
       .map(PathRef(_))
   }
 
-  def androidPackagedCompiledClasses: T[Seq[PathRef]] = Task {
-    os.walk(compile().classes.path)
-      .filter(_.ext == "class")
-      .map(PathRef(_))
-  }
-
   def androidPackagedDeps: T[Seq[PathRef]] = Task {
-    compileClasspath()
+    runClasspath()
       .filter(_ != androidSdkModule().androidJarPath())
       .filter(_.path.ext == "jar")
   }

@@ -242,20 +242,6 @@ trait AndroidAppModule extends AndroidModule {
 
   }
 
-  /**
-   * The android resource only APKs to package with the
-   * applications apk, composed of dependencies from [[androidLinkedRunLibResources]],
-   * and [[androidCompiledResourcesApk]]
-   */
-  def androidResPackagableApks = Task {
-    (
-      os.walk(androidLinkedRunLibResources().buildDir.path) ++ os.walk(
-        androidCompiledResourcesApk().buildDir.path
-      )
-    ).filter(_.ext == "apk")
-      .map(PathRef(_))
-  }
-
   // TODO check if we can reuse https://android.googlesource.com/platform/tools/base/+/refs/heads/mirror-goog-studio-main/sdk-common/src/main/java/com/android/ide/common/resources/
   // to implement proper resource merging
   /**
@@ -878,7 +864,7 @@ trait AndroidAppModule extends AndroidModule {
 
     val outPath = Task.dest
 
-    val appCompiledFiles = (androidPackagedCompiledClasses() ++ androidPackagedClassfiles())
+    val appCompiledFiles = androidPackagedClassfiles()
       .map(_.path.toString())
 
     val libsJarFiles = androidPackagedDeps()
@@ -1152,14 +1138,6 @@ trait AndroidAppModule extends AndroidModule {
 
     override def androidPackagedDeps: T[Seq[PathRef]] = Task {
       androidResolvedMvnDeps()
-    }
-
-    /**
-     * The instrumented tests are packaged with testClasspath which already contains the
-     * user compiled classes
-     */
-    override def androidPackagedCompiledClasses: T[Seq[PathRef]] = Task {
-      Seq.empty[PathRef]
     }
 
     /** Builds the apk including the integration tests (e.g. from androidTest) */
