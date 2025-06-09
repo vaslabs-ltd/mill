@@ -397,7 +397,11 @@ trait AndroidModule extends JavaModule {
    */
   def androidNamespace: String
 
-  def androidRunLibResources = Task {
+  /**
+   * The android resources from the dependencies needed to run the application
+   * @return
+   */
+  def androidRunLibResources: T[PathRef] = Task {
     val out = Task.dest / "lib-res"
     os.makeDir(out)
     for (unpackedDep <- androidRuntimeUnpackedArchives()) {
@@ -633,6 +637,7 @@ trait AndroidModule extends JavaModule {
       "link",
       "-I",
       androidSdkModule().androidJarPath().path.toString,
+      "--static-lib",
       "--custom-package",
       androidNamespace,
       "--auto-add-overlay",
@@ -662,7 +667,7 @@ trait AndroidModule extends JavaModule {
 
     os.call(args).out.text()
 
-    AndroidRes(buildDir = PathRef(apkDest), generatedSources = PathRef(generatedSourcesDest))
+    AndroidRes(buildDir = PathRef(apkDestDir), generatedSources = PathRef(generatedSourcesDest))
 
   }
 

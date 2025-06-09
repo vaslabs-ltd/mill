@@ -243,24 +243,36 @@ trait AndroidAppModule extends AndroidModule {
   }
 
   /**
+   * The android resource only APKs to package with the
+   * applications apk, composed of dependencies from [[androidLinkedRunLibResources]],
+   * and [[androidCompiledResourcesApk]]
+   */
+  def androidResPackagableApks = Task {
+    (
+      os.walk(androidLinkedRunLibResources().buildDir.path) ++ os.walk(
+        androidCompiledResourcesApk().buildDir.path
+      )
+    ).filter(_.ext == "apk")
+      .map(PathRef(_))
+  }
+
+  /**
    * Builds an uber res.apk with all the resources, needed to run the
    * android app using [[androidCompiledResourcesApk]] and [[androidRunLibResources]]
    * @return
    */
   def androidResApk: T[PathRef] = Task {
-    val out = Task.dest / "res.apk"
-
-    val dependencyResApks = os.walk(androidLinkedRunLibResources().buildDir.path)
-      .filter(_.ext == "apk")
-
-    val androidResourcesApk = androidCompiledResourcesApk().buildDir.path
+    val resProtoOut = Task.dest / "res-proto.apk"
+    val resOut = Task.dest / "res.apk"
 
     val aapt2Args = Seq(
       androidSdkModule().aapt2Path().path.toString,
       "link",
       "-I",
       androidSdkModule().androidJarPath().path.toString
-    ) ++ (dependencyResApks :+ androidResourcesApk).map(_.toString) ++ Seq(
+    ) ++ androidResPackagableApks().map(_.path.toString).flatMap(apk => Seq("-I", apk)) ++ Seq(
+      "--merge-only",
+      "--static-lib",
       "--manifest",
       androidMergedManifest().path.toString,
       "--min-sdk-version",
@@ -273,12 +285,26 @@ trait AndroidAppModule extends AndroidModule {
       androidVersionName(),
       "--proguard-conditional-keep-rules",
       "-o",
-      out.toString
+      resProtoOut.toString
     )
 
-    os.call(aapt2Args).out.text()
+    os.call(aapt2Args)
 
-    PathRef(out)
+    val convertArgs = Seq(
+      androidSdkModule().aapt2Path().path.toString,
+      "convert",
+      "-o",
+      resOut.toString,
+      "--output-format",
+      "binary",
+      "--keep-raw-values",
+      resProtoOut.toString
+    )
+
+    os.call(convertArgs)
+
+
+    PathRef(resOut)
 
   }
 
