@@ -173,17 +173,9 @@ trait AndroidModule extends JavaModule {
   }
 
   /**
-   * The generated android sources from [[androidResources]].
-   */
-  def androidGeneratedRSources: T[Seq[PathRef]] = Task {
-    os.walk(androidCompiledResourcesApk().generatedSources.path).filter(_.ext == "java")
-      .map(PathRef(_))
-  }
-
-  /**
    * The Java compiled classes of [[androidResources]]
    */
-  def androidRClasses: T[CompilationResult] = Task(persistent = true) {
+  def androidCompiledRClasses: T[CompilationResult] = Task(persistent = true) {
     jvmWorker()
       .worker()
       .compileJava(
@@ -202,7 +194,7 @@ trait AndroidModule extends JavaModule {
   def androidRTransitiveClasspath: T[Seq[PathRef]] = Task {
     Task.traverse(transitiveModuleCompileModuleDeps) {
       case m: AndroidModule =>
-        Task.Anon(Seq(m.androidRClasses().classes))
+        Task.Anon(Seq(m.androidCompiledRClasses().classes))
       case _ =>
         Task.Anon(Seq.empty[PathRef])
     }().flatten
@@ -212,15 +204,22 @@ trait AndroidModule extends JavaModule {
    * Replaces AAR files in [[androidOriginalCompileClasspath]] with their extracted JARs.
    */
   override def compileClasspath: T[Seq[PathRef]] = Task {
-    // TODO process metadata shipped with Android libs. It can have some rules with Target SDK, for example.
+
     // TODO support baseline profiles shipped with Android libs.
     (androidOriginalCompileClasspath().filter(_.path.ext != "aar")
       ++ androidResolvedMvnDeps() ++ androidRTransitiveClasspath() ++ Seq(
-        androidRClasses().classes
+        androidCompiledRClasses().classes
       )).map(
       _.path
     ).distinct.map(PathRef(_))
   }
+
+  override def runClasspath: T[Seq[PathRef]] =
+    (androidOriginalRunClasspath().filter(_.path.ext != "aar")
+      ++ androidResolvedMvnDeps() ++ androidRTransitiveClasspath() ++ Seq(
+        androidCompiledRClasses().classes,
+        androidRunLibResources()
+      ))
 
   /**
    * Android res folder
@@ -472,6 +471,25 @@ trait AndroidModule extends JavaModule {
 
     AndroidRes(buildDir = PathRef(linkedResDir), generatedSources = PathRef(javaDest))
 
+  }
+
+  /**
+   * Run compiled classes generated from the [[resolvedRunMvnDeps]]
+   * of android dependencies
+   */
+  def androidRunCompiledRClasses: Task[CompilationResult] = Task(persistent = true) {
+    jvmWorker()
+      .worker()
+      .compileJava(
+        upstreamCompileOutput = upstreamCompileOutput(),
+        sources =
+          os.walk(androidLinkedRunLibResources().generatedSources.path).filter(_.ext == "java"),
+        compileClasspath = Seq.empty,
+        javacOptions = javacOptions() ++ mandatoryJavacOptions(),
+        reporter = Task.reporter.apply(hashCode),
+        reportCachedProblems = zincReportCachedProblems(),
+        incrementalCompilation = zincIncrementalCompilation()
+      )
   }
 
   def androidCompiledLibResources = Task {
