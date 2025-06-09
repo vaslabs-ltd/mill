@@ -272,6 +272,7 @@ trait AndroidAppModule extends AndroidModule {
       androidSdkModule().androidJarPath().path.toString
     ) ++ androidResPackagableApks().map(_.path.toString).flatMap(apk => Seq("-I", apk)) ++ Seq(
       "--merge-only",
+      "--auto-add-overlay",
       "--static-lib",
       "--manifest",
       androidMergedManifest().path.toString,
@@ -284,9 +285,10 @@ trait AndroidAppModule extends AndroidModule {
       "--version-name",
       androidVersionName(),
       "--proguard-conditional-keep-rules",
+      "--proguard-minimal-keep-rules",
       "-o",
       resProtoOut.toString
-    )
+    ) ++ Option.when(androidIsDebug())("--debug-mode")
 
     os.call(aapt2Args)
 
