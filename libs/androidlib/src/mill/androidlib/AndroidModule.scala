@@ -8,6 +8,7 @@ import mill.androidlib.manifestmerger.AndroidManifestMerger
 import mill.define.{ModuleRef, PathRef, Task}
 import mill.scalalib.*
 import mill.define.JsonFormatters.given
+import mill.scalalib.api.CompilationResult
 
 import scala.collection.immutable
 import scala.xml.*
@@ -172,12 +173,51 @@ trait AndroidModule extends JavaModule {
   }
 
   /**
+   * The generated android sources from [[androidResources]].
+   */
+  def androidGeneratedRSources: T[Seq[PathRef]] = Task {
+    os.walk(androidCompiledResourcesApk().generatedSources.path).filter(_.ext == "java")
+      .map(PathRef(_))
+  }
+
+  /**
+   * The Java compiled classes of [[androidResources]]
+   */
+  def androidRClasses: T[CompilationResult] = Task(persistent = true) {
+    jvmWorker()
+      .worker()
+      .compileJava(
+        upstreamCompileOutput = upstreamCompileOutput(),
+        sources =
+          os.walk(androidCompiledResourcesApk().generatedSources.path).filter(_.ext == "java"),
+        compileClasspath = Seq.empty,
+        javacOptions = javacOptions() ++ mandatoryJavacOptions(),
+        reporter = Task.reporter.apply(hashCode),
+        reportCachedProblems = zincReportCachedProblems(),
+        incrementalCompilation = zincIncrementalCompilation()
+      )
+  }
+
+  /** The classpath containing only the R Classes */
+  def androidRTransitiveClasspath: T[Seq[PathRef]] = Task {
+    Task.traverse(transitiveModuleCompileModuleDeps) {
+      case m: AndroidModule =>
+        Task.Anon(Seq(m.androidRClasses().classes))
+      case _ =>
+        Task.Anon(Seq.empty[PathRef])
+    }().flatten
+  }
+
+  /**
    * Replaces AAR files in [[androidOriginalCompileClasspath]] with their extracted JARs.
    */
   override def compileClasspath: T[Seq[PathRef]] = Task {
     // TODO process metadata shipped with Android libs. It can have some rules with Target SDK, for example.
     // TODO support baseline profiles shipped with Android libs.
-    (androidOriginalCompileClasspath().filter(_.path.ext != "aar") ++ androidResolvedMvnDeps()).map(
+    (androidOriginalCompileClasspath().filter(_.path.ext != "aar")
+      ++ androidResolvedMvnDeps() ++ androidRTransitiveClasspath() ++ Seq(
+        androidRClasses().classes
+      )).map(
       _.path
     ).distinct.map(PathRef(_))
   }
@@ -547,6 +587,15 @@ trait AndroidModule extends JavaModule {
 
   }
 
+  def androidTransitiveCompiledResources: T[Seq[PathRef]] = Task {
+    Task.traverse(transitiveModuleCompileModuleDeps) {
+      case m: AndroidModule =>
+        Task.Anon(Seq(m.androidCompiledResources()))
+      case _ =>
+        Task.Anon(Seq.empty[PathRef])
+    }().flatten
+  }
+
   private def androiLinkStaticLibArgs = Task {
     Seq(
       androidSdkModule().aapt2Path().path.toString,
@@ -571,7 +620,7 @@ trait AndroidModule extends JavaModule {
    *
    * @return
    */
-  def androidCompiledResourcesApk = Task {
+  def androidCompiledResourcesApk: T[AndroidRes] = Task {
 
     val apkDestDir = Task.dest / "apk"
     os.makeDir(apkDestDir)
@@ -597,9 +646,12 @@ trait AndroidModule extends JavaModule {
       androidVersionName(),
       "--proguard-conditional-keep-rules"
     )
-    val flatFiles = os.walk(androidCompiledResources().path).filter(
-      _.ext == "flat"
-    )
+    val flatFiles =
+      (androidCompiledResources() +: androidTransitiveCompiledResources()).flatMap(pr =>
+        os.walk(pr.path)
+      ).filter(
+        _.ext == "flat"
+      )
 
     val args = linkArgs ++ Seq(
       "--manifest",
