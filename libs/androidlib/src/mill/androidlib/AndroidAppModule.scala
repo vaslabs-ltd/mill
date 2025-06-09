@@ -283,7 +283,6 @@ trait AndroidAppModule extends AndroidModule {
       "link",
       "-I",
       androidSdkModule().androidJarPath().path.toString,
-      "--auto-add-overlay",
       "--manifest",
       androidMergedManifest().path.toString,
       "--min-sdk-version",
@@ -298,7 +297,7 @@ trait AndroidAppModule extends AndroidModule {
       "--proguard-minimal-keep-rules",
       "-o",
       resOut.toString
-    ) ++ Option.when(androidIsDebug())("--debug-mode") ++ androidMergedFlatFiles().map(pr =>
+    ) ++ androidAaptOptions() ++ androidMergedFlatFiles().map(pr =>
       pr.path.toString
     )
 

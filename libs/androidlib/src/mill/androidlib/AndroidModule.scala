@@ -119,7 +119,7 @@ trait AndroidModule extends JavaModule {
    * Specifies AAPT options for Android resource compilation.
    */
   def androidAaptOptions: T[Seq[String]] = Task {
-    Seq("--auto-add-overlay")
+    Seq("--auto-add-overlay") ++ Option.when(androidIsDebug())("--debug-mode")
   }
 
   /**
