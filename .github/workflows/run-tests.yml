@@ -222,6 +222,11 @@ jobs:
             install-sbt: false
 
           - java-version: 11
+            millargs: "'mill.idea.GenIdea/'"
+            install-android-sdk: false
+            install-sbt: false
+
+          - java-version: 11
             millargs: "'integration.{failure,feature,ide}.__.native.daemon'"
             install-android-sdk: false
             install-sbt: false
