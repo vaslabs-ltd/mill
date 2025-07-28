@@ -323,7 +323,6 @@ trait AndroidSdkModule extends Module {
     // TODO: Prompt the user to accept licenses interactively
     if (isCI)
       os.proc("echo", "y\n" * 10).pipeTo(os.proc(sdkManagerExe.toString, "--licenses")).call()
-    sdkManagerExe
   }
 
   /**
@@ -334,8 +333,13 @@ trait AndroidSdkModule extends Module {
   private def cmdlineToolsPath: T[PathRef] = Task {
     val cmdlineToolsVersionShort = cmdlineToolsVersion()
     val cmdlineToolsPath0 = sdkPath().path / "cmdline-tools" / cmdlineToolsVersionShort
-    if (!os.exists(cmdlineToolsPath0))
+    if (!os.exists(cmdlineToolsPath0)) {
+      Task.log.info(
+        s"Cmdline tools version $cmdlineToolsVersionShort not found at $cmdlineToolsPath0. " +
+          "Installing..."
+      )
       installCmdlineTools(sdkPath().path, cmdlineToolsVersionShort)
+    }
     PathRef(cmdlineToolsPath0)
   }
 
