@@ -29,3 +29,32 @@ runs:
     - name: Cleanup any previous avd's to avoid signing key conflicts
       run: rm -rf /home/runner/.android/avd
       shell: bash
+
+    - name: Manual Mill usage
+      run: |
+        ./mill dist.installLocal
+        cp mill-assembly.jar example/androidlib/java/1-hello-world/mill
+        cd example/androidlib/java/1-hello-world
+        tree -L 2 -d $ANDROID_HOME || true
+        tree -L 1 $HOME/.android || true
+        ps aux | grep adb
+        
+        ./mill show app.androidApk
+        tree -L 2 -d $ANDROID_HOME || true
+        tree -L 1 $HOME/.android || true
+        ps aux | grep adb
+        
+        ./mill show app.createAndroidVirtualDevice
+        tree -L 2 -d $ANDROID_HOME || true
+        tree -L 1 $HOME/.android || true
+        ps aux | grep adb
+        
+        ./mill show app.startAndroidEmulator
+        tree -L 2 -d $ANDROID_HOME || true
+        tree -L 1 $HOME/.android || true
+        ps aux | grep adb
+        
+        ./mill show app.stopAndroidEmulator
+        ./mill show app.deleteAndroidVirtualDevice
+
+      shell: bash
