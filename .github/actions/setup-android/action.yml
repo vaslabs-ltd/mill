@@ -3,6 +3,18 @@
 runs:
   using: "composite"
   steps:
+    - name: Debug
+      run: |
+        echo "old ANDROID_HOME:"
+        tree $ANDROID_HOME -L 2 -d || true
+        echo "old ANDROID_SDK_ROOT:"
+        tree $ANDROID_SDK_ROOT -L 2 -d || true
+        tree $HOME/.android -L 2 || true
+        ps aux | grep adb
+        pwd
+        ls -lah
+      shell: bash
+
     - name: Set ANDROID_HOME
       run: echo "ANDROID_HOME=$HOME/.android/sdk" >> $GITHUB_ENV
       shell: bash
