@@ -316,7 +316,7 @@ trait AndroidSdkModule extends Module {
       throw new IllegalStateException("os.name system property is not defined")
     ).toLowerCase
 
-    val platform = Seq("linux", "mac", "windows").find(osName.contains) match {
+    val platform = Seq("linux", "mac", "win").find(osName.contains) match {
       case Some(p) => p
       case None =>
         throw new IllegalStateException(s"Unsupported platform for cmdline tools: $osName")
