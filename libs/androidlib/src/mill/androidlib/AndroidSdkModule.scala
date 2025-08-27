@@ -312,7 +312,9 @@ trait AndroidSdkModule extends Module {
   }
 
   private def cmdlineToolsURL(versionLong: String): String = {
-    val osName: Option[String] = sys.props.get("os.name").map(_.toLowerCase)
+    val osName: String = sys.props.get("os.name").getOrElse(
+      throw new IllegalStateException("os.name system property is not defined")
+    ).toLowerCase
 
     val platform = Seq("linux", "mac", "windows").find(osName.contains) match {
       case Some(p) => p
