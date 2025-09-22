@@ -85,8 +85,8 @@ object `package` extends MillPublishScalaModule with BuildInfo {
     override def compileMvnDeps = Seq(
       Deps.androidDataBindingCompiler,
       Deps.androidDataBindingCompilerCommon,
+      Deps.kotlinStdlib,
       Deps.osLib,
-      mvn"org.jetbrains.kotlin:kotlin-stdlib:1.9.10"
     )
 
     override def mvnDeps = Seq(
