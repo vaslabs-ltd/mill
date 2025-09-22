@@ -22,17 +22,11 @@ trait AndroidKotlinModule extends KotlinModule with AndroidModule { outer =>
    */
   def androidEnableCompose: T[Boolean] = false
 
-  def enableViewBinding: T[Boolean] = Task {
-    false
-  }
+  def enableViewBinding: Boolean = false
 
-  def enableDataBinding: T[Boolean] = Task {
-    false
-  }
+  def enableDataBinding: Boolean = false
 
-  private def isBindingEnabled: T[Boolean] = Task {
-    enableViewBinding() || enableDataBinding()
-  }
+  private def isBindingEnabled: Boolean = enableViewBinding || enableDataBinding
 
   def androidDataBindingCompilerDeps: T[Seq[Dep]] = Task {
     Seq(
@@ -80,8 +74,8 @@ trait AndroidKotlinModule extends KotlinModule with AndroidModule { outer =>
       resInputDir = androidResources().head.path.toString,
       resOutputDir = resOutputDir.toString,
       layoutInfoOutputDir = layoutInfoOutputDir.toString,
-      enableViewBinding = enableViewBinding(),
-      enableDataBinding = enableDataBinding()
+      enableViewBinding = enableViewBinding,
+      enableDataBinding = enableDataBinding
     )
 
     androidDataBindingWorkerModule().processResources(androidDataBindingWorker(), args)
@@ -102,8 +96,8 @@ trait AndroidKotlinModule extends KotlinModule with AndroidModule { outer =>
       classInfoDir = classInfoDir.toString,
       outputDir = outputDir.toString,
       logFolder = logDir.toString,
-      enableViewBinding = enableViewBinding(),
-      enableDataBinding = enableDataBinding()
+      enableViewBinding = enableViewBinding,
+      enableDataBinding = enableDataBinding
     )
 
     androidDataBindingWorkerModule().generateBindingSources(androidDataBindingWorker(), args)
@@ -111,37 +105,34 @@ trait AndroidKotlinModule extends KotlinModule with AndroidModule { outer =>
     PathRef(Task.dest)
   }
 
-  override def generatedSources: T[Seq[PathRef]] = Task {
-    isBindingEnabled() match {
-      case true => super.generatedSources() :+ generatedBindingSources()
-      case false => super.generatedSources()
-    }
+  override def generatedSources: T[Seq[PathRef]] = isBindingEnabled match {
+    case true => super.generatedSources() :+ generatedBindingSources()
+    case false => super.generatedSources()
   }
 
-  override def androidCompiledModuleResources: T[Seq[PathRef]] = Task {
+  override def androidCompiledModuleResources: T[Seq[PathRef]] = isBindingEnabled match {
+    case true => Task {
+        val moduleResources = Seq(processedLayoutXmls().path / "resources")
 
-    val moduleResources = isBindingEnabled() match {
-      case true => Seq(processedLayoutXmls().path / "resources")
-      case false => androidResources().map(_.path).filter(os.exists)
-    }
+        val aapt2Compile = Seq(androidSdkModule().aapt2Exe().path.toString(), "compile")
 
-    val aapt2Compile = Seq(androidSdkModule().aapt2Exe().path.toString(), "compile")
+        for (libResDir <- moduleResources) {
+          val segmentsSeq = libResDir.segments.toSeq
+          val libraryName = segmentsSeq.dropRight(1).last
+          val dirDest = Task.dest / libraryName
+          os.makeDir(dirDest)
+          val aapt2Args = Seq(
+            "--dir",
+            libResDir.toString,
+            "-o",
+            dirDest.toString
+          )
 
-    for (libResDir <- moduleResources) {
-      val segmentsSeq = libResDir.segments.toSeq
-      val libraryName = segmentsSeq.dropRight(1).last
-      val dirDest = Task.dest / libraryName
-      os.makeDir(dirDest)
-      val aapt2Args = Seq(
-        "--dir",
-        libResDir.toString,
-        "-o",
-        dirDest.toString
-      )
-
-      os.call(aapt2Compile ++ aapt2Args)
-    }
-    androidTransitiveCompiledResources() ++ Seq(PathRef(Task.dest))
+          os.call(aapt2Compile ++ aapt2Args)
+        }
+        androidTransitiveCompiledResources() ++ Seq(PathRef(Task.dest))
+      }
+    case false => super.androidCompiledModuleResources()
   }
 
   override def kotlincPluginMvnDeps: T[Seq[Dep]] = Task {
