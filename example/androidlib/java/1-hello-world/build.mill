@@ -18,7 +18,6 @@ object androidSdkModule0 extends AndroidSdkModule {
 
 // Actual android application
 trait base extends AndroidAppModule {
-  override def moduleDir = super.moduleDir / os.up
 
   def androidSdkModule = mill.api.ModuleRef(androidSdkModule0)
   def androidMinSdk = 19
@@ -29,29 +28,28 @@ trait base extends AndroidAppModule {
   override def androidVirtualDeviceIdentifier: String = "java-test"
 }
 
-object app extends mill.api.Module {
-  object debug extends base {
-    object test extends AndroidAppTests, TestModule.Junit4 {
-      def junit4Version = "4.13.2"
-    }
+object app extends base {
+  object test extends AndroidAppTests, TestModule.Junit4 {
+    def junit4Version = "4.13.2"
+  }
 
-    object it extends AndroidAppInstrumentedTests {
+  object it extends AndroidAppInstrumentedTests {
 
-      def androidSdkModule = mill.api.ModuleRef(androidSdkModule0)
+    def androidSdkModule = mill.api.ModuleRef(androidSdkModule0)
 
-      /* TODO currently the dependency resolution ignores the platform type and kotlinx-coroutines-core has
-       * conflicting classes with kotlinx-coroutines-core-jvm . Remove the exclusions once the dependency
-       * resolution resolves conflicts between androidJvm and jvm platform types
-       */
-      def mvnDeps = super.mvnDeps() ++ Seq(
-        mvn"androidx.test.ext:junit:1.2.1",
-        mvn"androidx.test:runner:1.6.2",
-        mvn"androidx.test.espresso:espresso-core:3.5.1",
-        mvn"junit:junit:4.13.2"
-      )
-    }
+    /* TODO currently the dependency resolution ignores the platform type and kotlinx-coroutines-core has
+     * conflicting classes with kotlinx-coroutines-core-jvm . Remove the exclusions once the dependency
+     * resolution resolves conflicts between androidJvm and jvm platform types
+     */
+    def mvnDeps = super.mvnDeps() ++ Seq(
+      mvn"androidx.test.ext:junit:1.2.1",
+      mvn"androidx.test:runner:1.6.2",
+      mvn"androidx.test.espresso:espresso-core:3.5.1",
+      mvn"junit:junit:4.13.2"
+    )
   }
   object release extends base {
+    override def moduleDir = super.moduleDir / os.up
     override def androidIsDebug = false
 
     /**
@@ -71,8 +69,8 @@ object app extends mill.api.Module {
 
 /** Usage
 
-> ./mill show app.debug.androidApk
-".../out/app/debug/androidApk.dest/app.apk"
+> ./mill show app.androidApk
+".../out/app/androidApk.dest/app.apk"
 
 */
 
@@ -106,10 +104,10 @@ object app extends mill.api.Module {
 
 /** Usage
 
-> ./mill show app.debug.test
+> ./mill show app.test
 ...compiling 1 Java source...
 
-> cat out/app/debug/test/testForked.dest/out.json
+> cat out/app/test/testForked.dest/out.json
 ["",[{"fullyQualifiedName":"com.helloworld.ExampleUnitTest.textSize_isCorrect","selector":"com.helloworld.ExampleUnitTest.textSize_isCorrect","duration":...,"status":"Success"}]]
 
 */
@@ -118,15 +116,15 @@ object app extends mill.api.Module {
 
 /** Usage
 
-> ./mill show app.debug.createAndroidVirtualDevice
+> ./mill show app.createAndroidVirtualDevice
 ...Name: java-test, DeviceId: medium_phone...
 
-> ./mill show app.debug.startAndroidEmulator
+> ./mill show app.startAndroidEmulator
 
-> ./mill show app.debug.adbDevices
+> ./mill show app.adbDevices
 ...emulator-5554...device...
 
-> ./mill show app.debug.it
+> ./mill show app.it
 ...
 {
   "msg": "",
@@ -141,7 +139,7 @@ object app extends mill.api.Module {
 }
 ...
 
-> cat out/app/debug/it/testForked.dest/test-report.xml
+> cat out/app/it/testForked.dest/test-report.xml
 ...
 <?xml version='1.0' encoding='UTF-8'?>
 <testsuites tests="1" failures="0" errors="0" skipped="0" time="...">
@@ -154,9 +152,9 @@ object app extends mill.api.Module {
       </testsuites>
 ...
 
-> ./mill show app.debug.stopAndroidEmulator
+> ./mill show app.stopAndroidEmulator
 
-> ./mill show app.debug.deleteAndroidVirtualDevice
+> ./mill show app.deleteAndroidVirtualDevice
 
 */
 
