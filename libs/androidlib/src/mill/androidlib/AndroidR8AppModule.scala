@@ -296,6 +296,19 @@ trait AndroidR8AppModule extends AndroidAppModule { outer =>
         )
       }
 
+      if (desugarJdkLib().isDefined) {
+        desugarJdkClasspath().foreach { desugarDep =>
+          r8ArgsBuilder ++= Seq(
+            "--lib",
+            desugarDep.path.toString
+          )
+        }
+        r8ArgsBuilder ++= Seq(
+          "--desugared-lib",
+          desugarJdkConfig().get.path.toString
+        )
+      }
+
       // ProGuard configuration files: add our extra rules file,
       // all provided config files and the common rules.
       val pgArgs =

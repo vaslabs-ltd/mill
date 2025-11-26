@@ -582,6 +582,37 @@ trait AndroidModule extends JavaModule { outer =>
   def androidNamespace: String
 
   /**
+   * The desugar_jdk_libs dependency to use for desugaring.
+   */
+  def desugarJdkLib: T[Option[Dep]] = Task {
+    None
+  }
+
+  def resolvedDesugarJdkLibs: T[Seq[PathRef]] = Task {
+    defaultResolver().classpath(desugarJdkLib().toSeq)
+  }
+
+  def desugarJdkClasspath: T[Seq[PathRef]] = Task {
+    resolvedDesugarJdkLibs().filterNot(p => p.path.toString().contains("configuration"))
+  }
+
+  /**
+   * Extracts desugar.json from desugar_jdk_libs configuration jar
+   */
+  def desugarJdkConfig: T[Option[PathRef]] = Task {
+    if (desugarJdkLib().isDefined) {
+      val configurationJar =
+        resolvedDesugarJdkLibs().find(p => p.path.toString().contains("configuration")).get.path
+      val extractDir = Task.dest / "desugar-config"
+      os.unzip(configurationJar, extractDir)
+      val config = os.walk(extractDir).find(_.last == "desugar.json").get
+      Some(PathRef(config))
+    } else {
+      None
+    }
+  }
+
+  /**
    * If true, a BuildConfig.java file will be generated.
    * Defaults to true.
    *
