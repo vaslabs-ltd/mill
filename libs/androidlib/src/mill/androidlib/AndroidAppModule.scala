@@ -649,7 +649,7 @@ trait AndroidAppModule extends AndroidModule { outer =>
           "<subprocess>"
         ) ++ command,
         cwd = BuildCtx.workspaceRoot,
-        stdin = "",
+        stdin = ""
       )
     }
 
