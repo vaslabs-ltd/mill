@@ -7,7 +7,7 @@ import mill.api.Logger
 import mill.api.internal.*
 import mill.api.daemon.internal.internal
 import mill.api.JsonFormatters.given
-import mill.api.{ModuleRef, PathRef, Task}
+import mill.api.{ModuleRef, PathRef, Task, BuildCtx}
 import mill.javalib.*
 import os.{Path, RelPath, zip}
 import os.RelPath.stringRelPathValidated
@@ -600,7 +600,7 @@ trait AndroidAppModule extends AndroidModule { outer =>
   }
 
   /**
-   * Starts the android emulator and waits until it is booted
+   * Starts the android emulator in the background and waits until it is booted
    * @param excludeDefaultArgs Whether to exclude the default arguments for starting the emulator.
    *                           If set, needs to come first before extraArgs.
    * @param extraArgs Additional arguments to pass to the emulator
@@ -640,9 +640,18 @@ trait AndroidAppModule extends AndroidModule { outer =>
 
     Task.log.debug(s"Starting emulator with command ${command.mkString(" ")}")
 
-    val startEmuCmd = os.spawn(
-      command
-    )
+    val startEmuCmd: os.SubProcess = BuildCtx.withFilesystemCheckerDisabled {
+      mill.util.Jvm.spawnProcess(
+        mainClass = "mill.javalib.backgroundwrapper.MillBackgroundWrapper",
+        classPath = mill.javalib.JvmWorkerModule.backgroundWrapperClasspath().map(_.path).toSeq,
+        jvmArgs = Nil,
+        mainArgs = RunModule.BackgroundPaths(Task.dest).toArgs ++ Seq(
+          "<subprocess>"
+        ) ++ command,
+        cwd = BuildCtx.workspaceRoot,
+        stdin = "",
+      )
+    }
 
     val bootMessage: Option[String] = startEmuCmd.stdout.buffered.lines().filter(l => {
       Task.log.debug(l.trim())
@@ -653,26 +662,14 @@ trait AndroidAppModule extends AndroidModule { outer =>
       throw new Exception(s"Emulator failed to start: ${startEmuCmd.exitCode()}")
     }
 
+    Task.log.info("Waiting for device to be ready...")
     val emulator: String = waitForDevice(androidSdkModule().adbExe(), runningEmulator(), Task.log)
-
-    Task.log.info(s"Emulator ${emulator} started with message $bootMessage")
-
+    Task.log.info(s"Emulator ${emulator} started with message ${bootMessage.get}")
     bootMessage.get
   }
 
   def adbDevices(): Command[String] = Task.Command {
     os.call((androidSdkModule().adbExe().path, "devices", "-l")).out.text()
-  }
-
-  /**
-   * Stops the android emulator
-   */
-  def stopAndroidEmulator: T[String] = Task {
-    val emulator = runningEmulator()
-    os.call(
-      (androidSdkModule().adbExe().path, "-s", emulator, "emu", "kill")
-    )
-    emulator
   }
 
   /** The emulator port where adb connects to. Defaults to 5554 */
