@@ -93,7 +93,7 @@ object app extends AndroidNativeAppModule { // <1>
 }
 ...
 
-> ./mill show app.stopAndroidEmulator
+> ./mill clean app.startAndroidEmulator
 
 > ./mill show app.deleteAndroidVirtualDevice
 

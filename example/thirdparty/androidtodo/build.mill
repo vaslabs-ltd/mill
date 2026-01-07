@@ -283,7 +283,7 @@ object `shared-test` extends AndroidKotlinModule, AndroidHiltSupport {
 <testsuites tests="38" failures="0" errors="0" skipped="0" time="...">
 ...
 
-> ./mill show app.stopAndroidEmulator
+> ./mill clean app.startAndroidEmulator
 
 > ./mill show app.deleteAndroidVirtualDevice
 

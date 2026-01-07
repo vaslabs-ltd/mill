@@ -386,7 +386,7 @@ object Jetchat extends mill.api.Module {
   ]
 }
 
-> ./mill show JetNews.app.stopAndroidEmulator
+> ./mill clean JetNews.app.startAndroidEmulator
 
 > ./mill show JetNews.app.deleteAndroidVirtualDevice
 

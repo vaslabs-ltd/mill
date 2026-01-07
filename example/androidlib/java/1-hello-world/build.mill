@@ -146,7 +146,7 @@ object app extends AndroidAppModule {
       </testsuites>
 ...
 
-> ./mill show app.stopAndroidEmulator
+> ./mill clean app.startAndroidEmulator
 
 > ./mill show app.deleteAndroidVirtualDevice
 
@@ -156,6 +156,6 @@ object app extends AndroidAppModule {
 // typically run on an android device.
 // The createAndroidVirtualDevice command creates an AVD (Android Virtual Device)
 // and the startAndroidEmulator command starts the AVD. The it task runs the android tests
-// against the available AVD. The stopAndroidEmulator command stops the AVD and the
+// against the available AVD. The "clean startAndroidEmulator" command stops the AVD and the
 // destroyAndroidVirtualDevice command destroys the AVD.
 // The provided commands can be used in a CI/CD pipeline assuming the right setup is in place.

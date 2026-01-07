@@ -85,7 +85,7 @@ object app extends AndroidAppKotlinModule {
   "Complete"
 ]
 
-> ./mill show app.stopAndroidEmulator
+> ./mill clean app.startAndroidEmulator
 
 > ./mill show app.deleteAndroidVirtualDevice
 

@@ -74,7 +74,7 @@ object `endless-tunnel` extends mill.api.Module {
   "Complete"
 ]
 
-> ./mill show endless-tunnel.app.stopAndroidEmulator
+> ./mill clean endless-tunnel.app.startAndroidEmulator
 
 > ./mill show endless-tunnel.app.deleteAndroidVirtualDevice
 
