@@ -606,7 +606,7 @@ trait AndroidAppModule extends AndroidModule { outer =>
    * @param extraArgs Additional arguments to pass to the emulator
    * @return The log line that indicates the emulator is ready
    */
-  def startAndroidEmulator(
+  def androidEmulator(
       excludeDefaultArgs: Flag,
       extraArgs: String*
   ): Command[String] = Task.Command(exclusive = true) {
@@ -676,7 +676,7 @@ trait AndroidAppModule extends AndroidModule { outer =>
   def androidEmulatorPort: String = "5554"
 
   /**
-   * Returns the emulator identifier for created from [[startAndroidEmulator]]
+   * Returns the emulator identifier for created from [[androidEmulator]]
    * by iterating the adb device list
    */
   def runningEmulator: T[String] = Task {
