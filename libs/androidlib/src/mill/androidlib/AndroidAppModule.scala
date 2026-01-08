@@ -1061,7 +1061,9 @@ trait AndroidAppModule extends AndroidModule { outer =>
     /**
      * Runs the tests on the [[runningEmulator]] with the [[androidTestApk]]
      * against the [[androidApk]]
-     * @param args
+     *
+     * @param args Additional adb shell am instrument arguments.
+     *             See [[https://developer.android.com/studio/test/command-line#am-instrument-options]]
      * @param globSelectors
      * @return
      */
@@ -1080,7 +1082,8 @@ trait AndroidAppModule extends AndroidModule { outer =>
           "am",
           "instrument",
           "-w",
-          "-r",
+          "-r"
+        ) ++ args() ++ Seq(
           s"${androidApplicationId}/${testFramework()}"
         )
       ).spawn()
