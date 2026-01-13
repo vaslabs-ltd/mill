@@ -1,4 +1,4 @@
-// ...
+// Example project based on hello-world Android app with Kotlin and instrumented tests ...
 
 //// SNIPPET:BUILD
 package build
@@ -22,9 +22,8 @@ object app extends AndroidAppKotlinModule {
   def androidApplicationId = "com.helloworld.app"
   def androidApplicationNamespace = "com.helloworld.app"
 
-  override def androidVirtualDevice = super.androidVirtualDevice().withName("kotlin-test")
+  override def androidVirtualDevice = super.androidVirtualDevice().withName("kotlin-instrumented-tests")
   override def androidEmulatorPort: String = "5564"
-
 
   object it extends AndroidAppKotlinInstrumentedTests {
 
@@ -54,20 +53,20 @@ object app extends AndroidAppKotlinModule {
 
 > ./mill show app.startAndroidEmulator
 
-> ./mill show app.it
-...
-{
-  "msg": "",
-  "results": [
-    {
-      "fullyQualifiedName": "com.helloworld.app.ExampleInstrumentedTest.useAppContext",
-      "selector": "com.helloworld.app.ExampleInstrumentedTest.useAppContext",
-      "duration": ...,
-      "status": "Success"
-    }
-  ]
-}
-...
+// Run all instrumented tests
+> ./mill show app.it 
+
+// Run a single class
+> ./mill show app.it -e class com.helloworld.logic.LogicInstrumentedTest
+
+// Run a single method
+> ./mill show app.it -e class com.helloworld.logic.LogicInstrumentedTest#testAddAndAverage
+
+// Run multiple classes (comma-separated)
+> ./mill show app.it -e class com.helloworld.logic.LogicInstrumentedTest,com.helloworld.app.ui.ResourceInstrumentedTest
+
+// Run all tests in a Java package
+> ./mill show app.it -e package com.helloworld.app.ui
 
 > ./mill show app.stopAndroidEmulator
 
