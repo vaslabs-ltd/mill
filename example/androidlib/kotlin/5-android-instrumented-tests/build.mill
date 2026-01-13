@@ -1,0 +1,76 @@
+// ...
+
+//// SNIPPET:BUILD
+package build
+
+import mill.*, androidlib.*, kotlinlib.*, scalalib.*
+
+import coursier.maven.MavenRepository
+
+// Create and configure an Android SDK module to manage Android SDK paths and tools.
+object androidSdkModule0 extends AndroidSdkModule {
+  def buildToolsVersion = "35.0.0"
+}
+
+// Actual android application
+object app extends AndroidAppKotlinModule {
+
+  def kotlinVersion = "2.0.20"
+  def androidSdkModule = mill.api.ModuleRef(androidSdkModule0)
+  def androidMinSdk = 19
+  def androidCompileSdk = 35
+  def androidApplicationId = "com.helloworld.app"
+  def androidApplicationNamespace = "com.helloworld.app"
+
+  override def androidVirtualDevice = super.androidVirtualDevice().withName("kotlin-test")
+  override def androidEmulatorPort: String = "5564"
+
+
+  object it extends AndroidAppKotlinInstrumentedTests {
+
+    def mvnDeps = Seq(
+      mvn"androidx.test.ext:junit:1.2.1",
+      mvn"androidx.test:runner:1.6.2",
+      mvn"androidx.test.espresso:espresso-core:3.5.1",
+      mvn"junit:junit:4.13.2"
+    )
+  }
+}
+
+//// SNIPPET:END
+
+/** Usage
+
+> ./mill show app.androidApk
+".../out/app/androidApk.dest/app.apk"
+
+> ./mill app.it.androidTestApk
+
+*/
+
+/** Usage
+
+> ./mill app.createAndroidVirtualDevice
+
+> ./mill show app.startAndroidEmulator
+
+> ./mill show app.it
+...
+{
+  "msg": "",
+  "results": [
+    {
+      "fullyQualifiedName": "com.helloworld.app.ExampleInstrumentedTest.useAppContext",
+      "selector": "com.helloworld.app.ExampleInstrumentedTest.useAppContext",
+      "duration": ...,
+      "status": "Success"
+    }
+  ]
+}
+...
+
+> ./mill show app.stopAndroidEmulator
+
+> ./mill show app.deleteAndroidVirtualDevice
+
+*/
