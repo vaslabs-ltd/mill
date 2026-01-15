@@ -148,7 +148,7 @@ object `package` extends Module {
      * Each module claims the port by incrementing the shared counter by two,
      * reserving one port for the console and one for adb.
      */
-    val emulatorPort: Int = androidPortCounter.getAndAdd(2)
+    val emulatorPort: Int = androidPortCounter.getAndAdd(1)
 
     override def forkEnv = super.forkEnv() ++ Map(
       "EMULATOR_PORT" -> emulatorPort.toString
@@ -245,7 +245,7 @@ object `package` extends Module {
    * Each module claims a port by incrementing this counter by two (for console and adb).
    * Ports start at 5554 which is the default starting port for Android emulators.
    */
-  private val androidPortCounter = new AtomicInteger(5554)
+  private val androidPortCounter = new AtomicInteger(10000)
 
   trait ExampleCrossModule extends build.integration.IntegrationTestModule {
 
