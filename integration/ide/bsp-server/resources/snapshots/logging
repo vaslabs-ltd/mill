@@ -3,18 +3,49 @@ bsp] BSP server started
 1-buildInitialize] Entered buildInitialize
 1-buildInitialize] Got client semanticdbVersion: * Enabling SemanticDB support.
 1-buildInitialize] buildInitialize took * msec
-bsp-init-mill-build/build.mill-64] compiling * Scala sources to * ...
-bsp-init-mill-build/build.mill-64] done compiling
-bsp-init-build.mill-64] compiling * Scala sources to * ...
-bsp-init-build.mill-64] [warn] build.mill:107:18
-bsp-init-build.mill-64]   def theThing = thing
-bsp-init-build.mill-64]                  ^^^^^
-bsp-init-build.mill-64] method thing in object diag is deprecated since 0.0.1: deprecated
-bsp-init-build.mill-64] 
-bsp-init-build.mill-64] [warn] one warning found
-bsp-init-build.mill-64] done compiling
+bsp-init-mill-build/build.mill-65] compiling * Scala sources to * ...
+bsp-init-mill-build/build.mill-65] done compiling
+bsp-init-build.mill-65] compiling * Scala sources to * ...
+bsp-init-build.mill-65] [warn] build.mill:107:18
+bsp-init-build.mill-65]   def theThing = thing
+bsp-init-build.mill-65]                  ^^^^^
+bsp-init-build.mill-65] method thing in object diag is deprecated since 0.0.1: deprecated
+bsp-init-build.mill-65] 
+bsp-init-build.mill-65] [warn] one warning found
+bsp-init-build.mill-65] done compiling
 bsp-init] BSP disabled for target file:///workspace/skipped
-bsp-init] SNAPSHOT
+bsp-init] app
+bsp-init] delayed
+bsp-init] dependsOnSkipped
+bsp-init] diag
+bsp-init] errored
+bsp-init] hello-java
+bsp-init] hello-kotlin
+bsp-init] hello-scala
+bsp-init] lib
+bsp-init] scripts
+bsp-init] selective
+bsp-init] skipped
+bsp-init] sourcesNeedCompile
+bsp-init] clean
+bsp-init] init
+bsp-init] inspect
+bsp-init] java
+bsp-init] javac
+bsp-init] javap
+bsp-init] jfr
+bsp-init] jps
+bsp-init] jstack
+bsp-init] path
+bsp-init] plan
+bsp-init] resolve
+bsp-init] show
+bsp-init] showNamed
+bsp-init] shutdown
+bsp-init] updateMillScripts
+bsp-init] version
+bsp-init] visualize
+bsp-init] visualizePlan
 2-workspaceBuildTargets] Entered workspaceBuildTargets
 bsp-init] BSP disabled for target file:///workspace/skipped
 2-workspaceBuildTargets] Evaluating * tasks
