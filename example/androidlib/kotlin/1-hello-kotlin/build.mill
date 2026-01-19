@@ -177,7 +177,7 @@ object app extends AndroidAppKotlinModule {
 
 */
 
-// The instrumented tests command accepts additional parameters to filter tests using `adb` `-e` options.
+// The command accepts additional parameters to filter tests using `adb` `-e` options.
 // (https://developer.android.com/studio/test/command-line#am-instrument-options[Documentation found here])
 //
 // For example, to run a specific package:
@@ -191,6 +191,13 @@ object app extends AndroidAppKotlinModule {
 /** Usage
 > ./mill show app.it -e class com.helloworld.logictest.SampleLogicInstrumentedTest
 ..."status": "Success"...
+*/
+
+// To run a specific method (notice the single quotes to avoid inrepolating the '#' character as a comment):
+/** Usage
+> ./mill show app.it -e class 'com.helloworld.logictest.SampleLogicInstrumentedTest#testTextSize'
+..."status": "Success"...
+
 */
 
 // You can combine multiple `-e` options as needed.
