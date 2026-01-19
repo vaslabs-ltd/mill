@@ -195,7 +195,7 @@ object app extends AndroidAppKotlinModule {
 
 // To run a specific method (notice the single quotes to avoid inrepolating the '#' character as a comment):
 /** Usage
-> ./mill show app.it -e class 'com.helloworld.logictest.SampleLogicInstrumentedTest#testTextSize'
+> ./mill show app.it -e class 'com.helloworld.logictest.SampleLogicInstrumentedTest#text_size_is_correct'
 ..."status": "Success"...
 
 */
