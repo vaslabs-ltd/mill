@@ -13,16 +13,9 @@ object `package` extends QuarkusModule, MavenModule, PublishModule { outer =>
 
   def artifactName = "6-quarkus-getting-started"
 
-  def bomMvnDeps = Seq(
-    mvn"io.quarkus.platform:quarkus-bom:3.31.1"
-  )
+  def quarkusVersion = "3.31.1"
 
   def publishVersion = "0.0.1"
-
-  def annotationProcessors = Seq(
-    mvn"io.quarkus:quarkus-arc",
-    mvn"io.quarkus:quarkus-extension-processor"
-  )
 
   def pomSettings = PomSettings(
     description = "6-quarkus-getting-started",

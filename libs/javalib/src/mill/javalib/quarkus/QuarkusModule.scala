@@ -8,13 +8,21 @@ import mill.util.Jvm
 
 import java.net.URLClassLoader
 
+@mill.api.experimental
 trait QuarkusModule extends JavaModule {
+
+  def quarkusVersion: T[String]
+
+  override def bomMvnDeps: Task.Simple[Seq[Dep]] = super.bomMvnDeps() ++ Seq(
+    mvn"io.quarkus.platform:quarkus-bom:${quarkusVersion()}"
+  )
 
   def quarkusBootstrapDeps: T[Seq[Dep]] = Task {
     Seq(
       mvn"io.quarkus:quarkus-bootstrap-core",
       mvn"io.quarkus:quarkus-bootstrap-app-model",
-      mvn"io.quarkus:quarkus-bootstrap-maven-resolver"
+      mvn"io.quarkus:quarkus-bootstrap-maven-resolver",
+      mvn"io.quarkus:quarkus-core-deployment"
     )
   }
 
@@ -62,43 +70,72 @@ trait QuarkusModule extends JavaModule {
     }
   }
 
+  // TODO most reliable way to get this?
+  def quarkusMillBuildFile: Task.Simple[PathRef] = Task.Input(PathRef(moduleDir / "build.mill"))
+
   def quarkusSerializedAppModel: T[PathRef] = this match {
     case m: PublishModule => Task {
-        quarkusApplicationModelWorker().bootstrapQuarkus(
+        val modelPath = quarkusApplicationModelWorker().quarkusGenerateApplicationModel(
           ApplicationModelWorker.AppModel(
-            moduleDir,
-            m.pomSettings().organization,
-            m.artifactId(),
-            m.publishVersion(),
-            m.sources().head.path, // TODO support multiple
-            m.resources().head.path,
-            m.compile().classes.path,
-            m.compileResources().head.path, // TODO this is wrong, adjust later,
-            bomMvnDeps().map(_.formatted),
-            quarkusDependencies()
+            projectRoot = moduleDir,
+            buildDir = Task.dest,
+            buildFile = quarkusMillBuildFile().path,
+            quarkusVersion(),
+            groupId = m.pomSettings().organization,
+            artifactId = m.artifactId(),
+            version = m.publishVersion(),
+            sourcesDir = m.sources().head.path, // TODO support multiple
+            resourcesDir = m.resources().head.path,
+            compiledPath = m.compile().classes.path,
+            compiledResources = m.compileResources().head.path, // TODO this is wrong, adjust later,
+            boms = bomMvnDeps().map(_.formatted),
+            dependencies = quarkusDependencies()
           ),
           Task.dest
         )
-        PathRef(Task.dest)
+        PathRef(modelPath)
       }
     case _ => Task {
-        quarkusApplicationModelWorker().bootstrapQuarkus(
+        val modelPath = quarkusApplicationModelWorker().quarkusGenerateApplicationModel(
           ApplicationModelWorker.AppModel(
-            moduleDir,
-            "unspecified", // todo add organisation in quarkus module
-            artifactId(),
-            "unspecified",
-            sources().head.path, // TODO support multiple
-            resources().head.path,
-            compile().classes.path,
-            compileResources().head.path, // TODO this is wrong, adjust later,
-            bomMvnDeps().map(_.formatted),
-            quarkusDependencies()
+            projectRoot = moduleDir,
+            buildDir = Task.dest,
+            buildFile = quarkusMillBuildFile().path,
+            quarkusVersion(),
+            groupId = "unspecified", // todo add organisation in quarkus module
+            artifactId = artifactId(),
+            version = "unspecified",
+            sourcesDir = sources().head.path, // TODO support multiple
+            resourcesDir = resources().head.path,
+            compiledPath = compile().classes.path,
+            compiledResources = compileResources().head.path, // TODO this is wrong, adjust later,
+            boms = bomMvnDeps().map(_.formatted),
+            dependencies = quarkusDependencies()
           ),
           Task.dest
         )
-        PathRef(Task.dest)
+        PathRef(modelPath)
       }
+  }
+
+  def quarkusLibDir: T[PathRef] = Task {
+    val dest = Task.dest
+    resolvedMvnDeps().foreach(
+      pr => os.copy.into(pr.path, dest)
+    )
+    PathRef(dest)
+  }
+
+  def quarkusJar: T[PathRef] = Task {
+    val dest = Task.dest
+    val jarPath = quarkusApplicationModelWorker().quarkusBootstrapApplication(
+      quarkusSerializedAppModel().path,
+      dest / "quarkus-run.jar", // TODO use quarkus utility function
+      jar().path,
+      quarkusLibDir().path
+    )
+
+    PathRef(jarPath)
   }
 
 }

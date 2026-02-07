@@ -1,15 +1,19 @@
 package mill.javalib.quarkus
 
 trait ApplicationModelWorker extends AutoCloseable {
-  def bootstrapQuarkus(
+  def quarkusBootstrapApplication(applicationModelFile: os.Path, destRunJar: os.Path, jar: os.Path, libDir: os.Path): os.Path
+  def quarkusGenerateApplicationModel(
       appModel: ApplicationModelWorker.AppModel,
       destination: os.Path
-  ): Unit
+  ): os.Path
 }
 
 object ApplicationModelWorker {
   case class AppModel(
       projectRoot: os.Path,
+      buildDir: os.Path,
+      buildFile: os.Path,
+      quarkusVersion: String,
       groupId: String,
       artifactId: String,
       version: String,
