@@ -42,6 +42,7 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
         applicationModel.getApplicationModule.getModuleDir.toPath
       ) // TODO this won't be always the case
       .setExistingModel(applicationModel)
+      .setTargetDirectory(destRunJar.toNIO)
       .setLocalProjectDiscovery(false)
       .setBaseClassLoader(getClass.getClassLoader)
       .build()
