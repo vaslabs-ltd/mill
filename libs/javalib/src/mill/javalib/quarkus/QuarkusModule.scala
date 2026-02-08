@@ -57,9 +57,9 @@ trait QuarkusModule extends JavaModule {
       ConfigurationBased(coursier.core.Configuration.runtime)
     )
 
-//    val depCompile = coursierDependencyTask().withVariantSelector(
-//      ConfigurationBased(coursier.core.Configuration.compile)
-//    )
+    val depCompile = coursierDependencyTask().withVariantSelector(
+      ConfigurationBased(coursier.core.Configuration.compile)
+    )
 
     val runtimeDeps =
       millResolver().artifacts(Seq(mill.javalib.BoundDep(depRuntime, force = false)))
@@ -73,8 +73,8 @@ trait QuarkusModule extends JavaModule {
     def isDirectDep(d: coursier.core.Module): Boolean =
       mvnDeps().exists(dep => dep.dep.module == d)
 
-//    val compileDeps =
-//      millResolver().artifacts(Seq(mill.javalib.BoundDep(depCompile, force = false)))
+    val compileDeps =
+      millResolver().artifacts(Seq(mill.javalib.BoundDep(depCompile, force = false)))
 
     val runtimeDepSet = runtimeDeps.detailedArtifacts0.map(da => qualifier(da._1)).toSet
 
@@ -102,7 +102,9 @@ trait QuarkusModule extends JavaModule {
       mvn"${d.groupId}:${d.artifactId}-deployment:${d.version}"
     )
 
-    val deploymentDeps = millResolver().artifacts(deploymentMvnDeps)
+    val deploymentDeps = millResolver().artifacts(
+      deploymentMvnDeps
+    )
 
     val deploymentDepsSet = deploymentDeps.detailedArtifacts0.map(da => qualifier(da._1)).toSet
 
@@ -120,32 +122,30 @@ trait QuarkusModule extends JavaModule {
         )
     }
 
-    println(deploymentDepsSet)
-
     val quarkusRuntimeDeps = quarkusPrecomputedRuntimeDeps.filterNot(d =>
       deploymentDepsSet.contains(wQualifier(d))
     )
 
-//    val quarkusCompileDeps =
-//      compileDeps.detailedArtifacts0.filterNot {
-//        da =>
-//          val q = qualifier(da._1)
-//          runtimeDepSet.contains(q) || deploymentDepsSet.contains(q)
-//      }.map {
-//        case (dependency, _, _, file) =>
-//          ApplicationModelWorker.Dependency(
-//            dependency.module.organization.value,
-//            dependency.module.name.value,
-//            dependency.versionConstraint.asString,
-//            os.Path(file),
-//            isRuntime = false,
-//            isDeployment = false,
-//            isTopLevelArtifact = isDirectDep(dependency.module),
-//            hasExtension = false
-//          )
-//      }
+    val quarkusCompileDeps =
+      compileDeps.detailedArtifacts0.filterNot {
+        da =>
+          val q = qualifier(da._1)
+          runtimeDepSet.contains(q) || deploymentDepsSet.contains(q)
+      }.map {
+        case (dependency, _, _, file) =>
+          ApplicationModelWorker.Dependency(
+            dependency.module.organization.value,
+            dependency.module.name.value,
+            dependency.versionConstraint.asString,
+            os.Path(file),
+            isRuntime = false,
+            isDeployment = false,
+            isTopLevelArtifact = isDirectDep(dependency.module),
+            hasExtension = false
+          )
+      }
 
-    quarkusRuntimeDeps ++ quarkusDeploymentDeps
+    quarkusRuntimeDeps ++ quarkusCompileDeps ++ quarkusDeploymentDeps
   }
 
   // TODO most reliable way to get this?
@@ -203,7 +203,8 @@ trait QuarkusModule extends JavaModule {
   }
 
   def quarkusJar: T[PathRef] = Task {
-    val dest = Task.dest
+    val dest = Task.dest / "quarkus"
+    os.makeDir.all(dest)
     val jarPath = quarkusApplicationModelWorker().quarkusBootstrapApplication(
       quarkusSerializedAppModel().path,
       dest / "quarkus-run.jar", // TODO use quarkus utility function

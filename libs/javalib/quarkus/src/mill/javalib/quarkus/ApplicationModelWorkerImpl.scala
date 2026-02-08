@@ -42,7 +42,8 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
         applicationModel.getApplicationModule.getModuleDir.toPath
       ) // TODO this won't be always the case
       .setExistingModel(applicationModel)
-      .setLocalProjectDiscovery(true)
+      .setLocalProjectDiscovery(false)
+      .setBaseClassLoader(getClass.getClassLoader)
       .build()
 
     val augmentAction: AugmentAction =
@@ -106,7 +107,6 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
             SourceDir.of(appModel.resourcesDir.toNIO, appModel.compiledResources.toNIO)
           )
         ).setBuildDir(appModel.buildDir.toNIO)
-        .setDependencies(dependencies.asJava)
         .setBuildFile(appModel.buildFile.toNIO)
         .build()
     ).setResolvedPaths(PathList.of(appModel.compiledPath.toNIO, appModel.compiledResources.toNIO))
@@ -137,11 +137,16 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
       )
     )
 
+    // TODO parametarise via mill build
+    platformImport.getPlatformProperties.put("platform.quarkus.native.builder-image", "mandrel")
+
     val modelBuilder = new ApplicationModelBuilder()
       .setAppArtifact(resolvedDependencyBuilder)
       .setPlatformImports(platformImport)
       .addDependencies(dependencies.asJava)
 
+    // TODO the below are duplicates of the mill -> worker impl interaction
+    // clean up once everything works
     processQuarkusDependency(resolvedDependencyBuilder, modelBuilder)
 
     dependencies.foreach((resolvedDependencyBuilder: ResolvedDependencyBuilder) =>
@@ -163,37 +168,39 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
       artifactBuilder: ResolvedDependencyBuilder,
       modelBuilder: ApplicationModelBuilder
   ): Unit = {
-    artifactBuilder.getResolvedPaths.asScala.filter(p =>
-      Files.exists(p) && artifactBuilder.getType == ArtifactCoords.TYPE_JAR
-    ).foreach {
-      artifactPath =>
-        if (Files.isDirectory(artifactPath)) {
-          processQuarkusDir(
-            artifactBuilder = artifactBuilder,
-            quarkusDir = artifactPath.resolve(BootstrapConstants.META_INF),
-            modelBuilder = modelBuilder
-          )
-        } else {
-          Using.resource(ZipUtils.newFileSystem(artifactPath))(artifactFs =>
+    if (artifactBuilder.hasAllFlags(DependencyFlags.RUNTIME_CP)) {
+      artifactBuilder.getResolvedPaths.asScala.filter(p =>
+        Files.exists(p) && artifactBuilder.getType == ArtifactCoords.TYPE_JAR
+      ).foreach {
+        artifactPath =>
+          if (Files.isDirectory(artifactPath)) {
             processQuarkusDir(
               artifactBuilder = artifactBuilder,
-              quarkusDir = artifactFs.getPath(BootstrapConstants.META_INF),
+              quarkusDir = artifactPath.resolve(BootstrapConstants.META_INF),
               modelBuilder = modelBuilder
             )
-          )
-        }
+          } else {
+            Using.resource(ZipUtils.newFileSystem(artifactPath))(artifactFs =>
+              processQuarkusDir(
+                artifactBuilder = artifactBuilder,
+                quarkusDir = artifactFs.getPath(BootstrapConstants.META_INF),
+                modelBuilder = modelBuilder
+              )
+            )
+          }
+      }
     }
 
   }
 
   private def hasDeploymentDep(dep: ApplicationModelWorker.Dependency): Boolean = {
     val artifact = dep.resolvedPath
-    val metaInfPathExists = Using.resource(ZipUtils.newFileSystem(artifact.toNIO)) { artifactFs =>
+    def metaInfPathExists = Using.resource(ZipUtils.newFileSystem(artifact.toNIO)) { artifactFs =>
       val quarkusDir = artifactFs.getPath(BootstrapConstants.META_INF)
       val quarkusDescr = quarkusDir.resolve(BootstrapConstants.DESCRIPTOR_FILE_NAME)
       Files.exists(quarkusDescr)
     }
-    metaInfPathExists
+    dep.isRuntime && metaInfPathExists
   }
 
   private def processQuarkusDir(
