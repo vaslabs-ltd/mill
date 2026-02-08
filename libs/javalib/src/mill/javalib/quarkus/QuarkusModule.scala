@@ -1,7 +1,8 @@
 package mill.javalib.quarkus
 
 import coursier.core.VariantSelector.ConfigurationBased
-import mill.api.PathRef
+import mill.api.{BuildCtx, PathRef}
+import mill.constants.DaemonFiles
 import mill.{T, Task}
 import mill.javalib.{Dep, DepSyntax, JavaModule, PublishModule}
 import mill.util.Jvm
@@ -26,11 +27,30 @@ trait QuarkusModule extends JavaModule {
     )
   }
 
-  def quarkusApplicationModelWorkerResolvedDeps: T[Seq[PathRef]] = Task {
-    defaultResolver().classpath(
-      quarkusBootstrapDeps() ++ Seq(Dep.millProjectModule("mill-libs-javalib-quarkus")),
-      boms = allBomDeps()
+  def quarkusRunBackground(args: mill.api.Args) = Task.Command(persistent = true) {
+    val backgroundPaths = mill.javalib.RunModule.BackgroundPaths(Task.dest)
+    val pwd0 = os.Path(java.nio.file.Paths.get(".").toAbsolutePath)
+
+    mill.util.Jvm.spawnProcess(
+      mainClass = "mill.javalib.backgroundwrapper.MillBackgroundWrapper",
+      classPath = mill.javalib.JvmWorkerModule.backgroundWrapperClasspath().map(_.path),
+      jvmArgs = Nil,
+      mainArgs = backgroundPaths.toArgs ++ Seq(
+        "<subprocess>",
+        Jvm.javaExe(javaHome().map(_.path)),
+        "-jar",
+        quarkusJar().path.toString
+      ) ++ args.value,
+      cwd = BuildCtx.workspaceRoot,
+      stdin = "",
+      // Hack to forward the background subprocess output to the Mill server process
+      // stdout/stderr files, so the output will get properly slurped up by the Mill server
+      // and shown to any connected Mill client even if the current command has completed
+      stdout = os.PathAppendRedirect(pwd0 / ".." / DaemonFiles.stdout),
+      stderr = os.PathAppendRedirect(pwd0 / ".." / DaemonFiles.stderr),
+      javaHome = javaHome().map(_.path)
     )
+    ()
   }
 
   def quarkusApplicationModelWorkerClassloader: Task.Worker[URLClassLoader] = Task.Worker {
