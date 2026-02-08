@@ -40,7 +40,7 @@ object `package` extends QuarkusModule, MavenModule, PublishModule { outer =>
 
 > ./mill show quarkusRunBackground
 
-> curl http://localhost:${PORT:-8080}
+> curl http://localhost:${PORT:-8080}/hello
 Hello from Quarkus REST
 
 > ./mill clean quarkusRunBackground
