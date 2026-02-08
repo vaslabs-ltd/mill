@@ -38,10 +38,11 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
       .deserialize(applicationModelFile.toNIO)
 
     val quarkusBootstrap = QuarkusBootstrap.builder()
-      .setApplicationRoot(
-        applicationModel.getApplicationModule.getModuleDir.toPath
-      ) // TODO this won't be always the case
       .setExistingModel(applicationModel)
+      .setAppArtifact(
+        ResolvedDependencyBuilder.newInstance()
+          .setResolvedPath(jar.toNIO)
+      )
       .setTargetDirectory(destRunJar.toNIO)
       .setLocalProjectDiscovery(false)
       .setBaseClassLoader(getClass.getClassLoader)

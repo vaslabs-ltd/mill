@@ -81,10 +81,10 @@ trait QuarkusModule extends JavaModule {
     val quarkusPrecomputedRuntimeDeps = runtimeDeps.detailedArtifacts0.map {
       case (dependency, _, _, file) =>
         ApplicationModelWorker.Dependency(
-          dependency.module.organization.value,
-          dependency.module.name.value,
-          dependency.versionConstraint.asString,
-          os.Path(file),
+          groupId = dependency.module.organization.value,
+          artifactId = dependency.module.name.value,
+          version = dependency.versionConstraint.asString,
+          resolvedPath = os.Path(file),
           isRuntime = true,
           isDeployment = false,
           isTopLevelArtifact = isDirectDep(dependency.module),
@@ -111,10 +111,10 @@ trait QuarkusModule extends JavaModule {
     val quarkusDeploymentDeps = deploymentDeps.detailedArtifacts0.map {
       case (dependency, _, _, file) =>
         ApplicationModelWorker.Dependency(
-          dependency.module.organization.value,
-          dependency.module.name.value,
-          dependency.versionConstraint.asString,
-          os.Path(file),
+          groupId = dependency.module.organization.value,
+          artifactId = dependency.module.name.value,
+          version = dependency.versionConstraint.asString,
+          resolvedPath = os.Path(file),
           isRuntime = runtimeDepSet.contains(qualifier(dependency)),
           isDeployment = true,
           isTopLevelArtifact = isDirectDep(dependency.module),
@@ -134,10 +134,10 @@ trait QuarkusModule extends JavaModule {
       }.map {
         case (dependency, _, _, file) =>
           ApplicationModelWorker.Dependency(
-            dependency.module.organization.value,
-            dependency.module.name.value,
-            dependency.versionConstraint.asString,
-            os.Path(file),
+            groupId = dependency.module.organization.value,
+            artifactId = dependency.module.name.value,
+            version = dependency.versionConstraint.asString,
+            resolvedPath = os.Path(file),
             isRuntime = false,
             isDeployment = false,
             isTopLevelArtifact = isDirectDep(dependency.module),
@@ -156,9 +156,9 @@ trait QuarkusModule extends JavaModule {
         val modelPath = quarkusApplicationModelWorker().quarkusGenerateApplicationModel(
           ApplicationModelWorker.AppModel(
             projectRoot = moduleDir,
-            buildDir = Task.dest,
+            buildDir = compile().classes.path,
             buildFile = quarkusMillBuildFile().path,
-            quarkusVersion(),
+            quarkusVersion = quarkusVersion(),
             groupId = m.pomSettings().organization,
             artifactId = m.artifactId(),
             version = m.publishVersion(),
@@ -177,9 +177,9 @@ trait QuarkusModule extends JavaModule {
         val modelPath = quarkusApplicationModelWorker().quarkusGenerateApplicationModel(
           ApplicationModelWorker.AppModel(
             projectRoot = moduleDir,
-            buildDir = Task.dest,
+            buildDir = compile().classes.path,
             buildFile = quarkusMillBuildFile().path,
-            quarkusVersion(),
+            quarkusVersion = quarkusVersion(),
             groupId = "unspecified", // todo add organisation in quarkus module
             artifactId = artifactId(),
             version = "unspecified",
