@@ -44,10 +44,12 @@ object Deps {
 
   object Scalanative_0_5 {
     val scalanativeVersion = "0.5.10"
-    val scalanativeTools = mvn"org.scala-native::tools:${scalanativeVersion}"
-    val scalanativeUtil = mvn"org.scala-native::util:${scalanativeVersion}"
-    val scalanativeNir = mvn"org.scala-native::nir:${scalanativeVersion}"
-    val scalanativeTestRunner = mvn"org.scala-native::test-runner:${scalanativeVersion}"
+    // Workaround for https://github.com/com-lihaoyi/mill/issues/6780:
+    // prefer Scala 2.13 published toolchain artifacts.
+    val scalanativeTools = mvn"org.scala-native:tools_2.13:${scalanativeVersion}"
+    val scalanativeUtil = mvn"org.scala-native:util_2.13:${scalanativeVersion}"
+    val scalanativeNir = mvn"org.scala-native:nir_2.13:${scalanativeVersion}"
+    val scalanativeTestRunner = mvn"org.scala-native:test-runner_2.13:${scalanativeVersion}"
   }
 
   trait Play {
@@ -111,7 +113,7 @@ object Deps {
   val graphvizJava = Seq(
     mvn"guru.nidi:graphviz-java-min-deps:0.18.1",
     mvn"org.webjars.npm:viz.js-graphviz-java:2.1.3",
-    mvn"org.apache.xmlgraphics:batik-rasterizer:1.18"
+    mvn"org.apache.xmlgraphics:batik-rasterizer:1.19"
   )
   val graphvizWithExcludes = mvn"guru.nidi:graphviz-java-min-deps:0.18.1"
     // We only need the in-memory library for some stuff, and don't
@@ -182,7 +184,7 @@ object Deps {
   val scalatags = mvn"com.lihaoyi::scalatags:0.13.1".withDottyCompat(scalaVersion)
   val scalaXml = mvn"org.scala-lang.modules::scala-xml:2.4.0"
   // keep in sync with doc/antora/antory.yml
-  val semanticDBscala = mvn"org.scalameta:::semanticdb-scalac:4.14.5"
+  val semanticDBscala = mvn"org.scalameta:::semanticdb-scalac:4.14.7"
   val semanticDbJava = mvn"com.sourcegraph:semanticdb-java:0.11.1"
   val semanticDbShared = mvn"org.scalameta:semanticdb-shared_2.13:${semanticDBscala.version}"
   val sourcecode = mvn"com.lihaoyi::sourcecode:0.4.4"
@@ -205,7 +207,7 @@ object Deps {
   val javaparser = mvn"com.github.javaparser:javaparser-core:3.28.0"
   val jarjarabrams = mvn"com.eed3si9n.jarjarabrams::jarjar-abrams-core:1.16.0"
   val requests = mvn"com.lihaoyi::requests:0.9.3"
-  val logback = mvn"ch.qos.logback:logback-classic:1.5.24"
+  val logback = mvn"ch.qos.logback:logback-classic:1.5.27"
   val sonatypeCentralClient = mvn"com.lumidion::sonatype-central-client-requests:0.6.0"
   val kotlinVersion = "2.1.20"
   val kspVersion = "2.0.1"
@@ -307,7 +309,7 @@ object Deps {
     mvn"org.apache.ant:ant:1.10.15",
     Deps.commonsIo,
     Deps.gson,
-    mvn"com.google.protobuf:protobuf-java:4.29.5",
+    mvn"com.google.protobuf:protobuf-java:4.33.5",
     mvn"com.google.guava:guava:33.4.0-jre",
     mvn"org.yaml:snakeyaml:2.5",
     mvn"org.apache.commons:commons-compress:1.28.0"
