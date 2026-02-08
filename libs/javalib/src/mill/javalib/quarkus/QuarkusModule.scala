@@ -57,15 +57,15 @@ trait QuarkusModule extends JavaModule {
       ConfigurationBased(coursier.core.Configuration.runtime)
     )
 
-    val depCompile = coursierDependencyTask().withVariantSelector(
-      ConfigurationBased(coursier.core.Configuration.compile)
-    )
+//    val depCompile = coursierDependencyTask().withVariantSelector(
+//      ConfigurationBased(coursier.core.Configuration.compile)
+//    )
 
     val runtimeDeps =
       millResolver().artifacts(Seq(mill.javalib.BoundDep(depRuntime, force = false)))
 
     def qualifier(d: coursier.core.Dependency) =
-      s"${d.module.orgName}:${d.module.name.value}"
+      s"${d.module.organization.value}:${d.module.name.value}"
 
     def wQualifier(d: ApplicationModelWorker.Dependency) =
       s"${d.groupId}:${d.artifactId}"
@@ -73,8 +73,8 @@ trait QuarkusModule extends JavaModule {
     def isDirectDep(d: coursier.core.Module): Boolean =
       mvnDeps().exists(dep => dep.dep.module == d)
 
-    val compileDeps =
-      millResolver().artifacts(Seq(mill.javalib.BoundDep(depCompile, force = false)))
+//    val compileDeps =
+//      millResolver().artifacts(Seq(mill.javalib.BoundDep(depCompile, force = false)))
 
     val runtimeDepSet = runtimeDeps.detailedArtifacts0.map(da => qualifier(da._1)).toSet
 
@@ -98,15 +98,13 @@ trait QuarkusModule extends JavaModule {
 
     val extensionDepsSet = depsWithExtensions.map(wQualifier).toSet
 
-    val quarkusRuntimeDeps = quarkusPrecomputedRuntimeDeps.map { d =>
-      d.copy(hasExtension = extensionDepsSet.contains(wQualifier(d)))
-    }
-
     val deploymentMvnDeps = depsWithExtensions.map(d =>
-      mvn"${d.groupId}:${d.artifactId}-deployment:${d.version}".exclude("*" -> "*")
+      mvn"${d.groupId}:${d.artifactId}-deployment:${d.version}"
     )
 
     val deploymentDeps = millResolver().artifacts(deploymentMvnDeps)
+
+    val deploymentDepsSet = deploymentDeps.detailedArtifacts0.map(da => qualifier(da._1)).toSet
 
     val quarkusDeploymentDeps = deploymentDeps.detailedArtifacts0.map {
       case (dependency, _, _, file) =>
@@ -115,29 +113,39 @@ trait QuarkusModule extends JavaModule {
           dependency.module.name.value,
           dependency.versionConstraint.asString,
           os.Path(file),
-          isRuntime = true,
+          isRuntime = runtimeDepSet.contains(qualifier(dependency)),
           isDeployment = true,
-          isTopLevelArtifact = false,
-          hasExtension = false
+          isTopLevelArtifact = isDirectDep(dependency.module),
+          hasExtension = extensionDepsSet.contains(qualifier(dependency))
         )
     }
 
-    val quarkusCompileDeps =
-      compileDeps.detailedArtifacts0.filterNot(da => runtimeDepSet.contains(qualifier(da._1))).map {
-        case (dependency, _, _, file) =>
-          ApplicationModelWorker.Dependency(
-            dependency.module.organization.value,
-            dependency.module.name.value,
-            dependency.versionConstraint.asString,
-            os.Path(file),
-            isRuntime = false,
-            isDeployment = false,
-            isTopLevelArtifact = false,
-            hasExtension = false
-          )
-      }
+    println(deploymentDepsSet)
 
-    quarkusRuntimeDeps ++ quarkusCompileDeps ++ quarkusDeploymentDeps
+    val quarkusRuntimeDeps = quarkusPrecomputedRuntimeDeps.filterNot(d =>
+      deploymentDepsSet.contains(wQualifier(d))
+    )
+
+//    val quarkusCompileDeps =
+//      compileDeps.detailedArtifacts0.filterNot {
+//        da =>
+//          val q = qualifier(da._1)
+//          runtimeDepSet.contains(q) || deploymentDepsSet.contains(q)
+//      }.map {
+//        case (dependency, _, _, file) =>
+//          ApplicationModelWorker.Dependency(
+//            dependency.module.organization.value,
+//            dependency.module.name.value,
+//            dependency.versionConstraint.asString,
+//            os.Path(file),
+//            isRuntime = false,
+//            isDeployment = false,
+//            isTopLevelArtifact = isDirectDep(dependency.module),
+//            hasExtension = false
+//          )
+//      }
+
+    quarkusRuntimeDeps ++ quarkusDeploymentDeps
   }
 
   // TODO most reliable way to get this?
