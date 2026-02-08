@@ -11,6 +11,9 @@ trait ApplicationModelWorker extends AutoCloseable {
       appModel: ApplicationModelWorker.AppModel,
       destination: os.Path
   ): os.Path
+
+  def quarkusDeploymentDependencies(runtimeDeps: Seq[ApplicationModelWorker.Dependency])
+      : Seq[ApplicationModelWorker.Dependency]
 }
 
 object ApplicationModelWorker {
@@ -30,5 +33,14 @@ object ApplicationModelWorker {
       dependencies: Seq[Dependency]
   )
 
-  case class Dependency(groupId: String, artifactId: String, version: String, resolvedPath: os.Path)
+  case class Dependency(
+      groupId: String,
+      artifactId: String,
+      version: String,
+      resolvedPath: os.Path,
+      isRuntime: Boolean,
+      isDeployment: Boolean,
+      isTopLevelArtifact: Boolean,
+      hasExtension: Boolean
+  )
 }

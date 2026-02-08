@@ -53,21 +53,91 @@ trait QuarkusModule extends JavaModule {
   }
 
   def quarkusDependencies: Task[Seq[ApplicationModelWorker.Dependency]] = Task.Anon {
-    val dep = coursierDependencyTask().withVariantSelector(
+    val depRuntime = coursierDependencyTask().withVariantSelector(
       ConfigurationBased(coursier.core.Configuration.runtime)
     )
 
-    val resolution = millResolver().artifacts(Seq(mill.javalib.BoundDep(dep, force = false)))
+    val depCompile = coursierDependencyTask().withVariantSelector(
+      ConfigurationBased(coursier.core.Configuration.compile)
+    )
 
-    resolution.detailedArtifacts0.map {
+    val runtimeDeps =
+      millResolver().artifacts(Seq(mill.javalib.BoundDep(depRuntime, force = false)))
+
+    def qualifier(d: coursier.core.Dependency) =
+      s"${d.module.orgName}:${d.module.name.value}"
+
+    def wQualifier(d: ApplicationModelWorker.Dependency) =
+      s"${d.groupId}:${d.artifactId}"
+
+    def isDirectDep(d: coursier.core.Module): Boolean =
+      mvnDeps().exists(dep => dep.dep.module == d)
+
+    val compileDeps =
+      millResolver().artifacts(Seq(mill.javalib.BoundDep(depCompile, force = false)))
+
+    val runtimeDepSet = runtimeDeps.detailedArtifacts0.map(da => qualifier(da._1)).toSet
+
+    val quarkusPrecomputedRuntimeDeps = runtimeDeps.detailedArtifacts0.map {
       case (dependency, _, _, file) =>
         ApplicationModelWorker.Dependency(
           dependency.module.organization.value,
           dependency.module.name.value,
           dependency.versionConstraint.asString,
-          os.Path(file)
+          os.Path(file),
+          isRuntime = true,
+          isDeployment = false,
+          isTopLevelArtifact = isDirectDep(dependency.module),
+          hasExtension = false
         )
     }
+
+    val depsWithExtensions = quarkusApplicationModelWorker().quarkusDeploymentDependencies(
+      quarkusPrecomputedRuntimeDeps
+    )
+
+    val extensionDepsSet = depsWithExtensions.map(wQualifier).toSet
+
+    val quarkusRuntimeDeps = quarkusPrecomputedRuntimeDeps.map { d =>
+      d.copy(hasExtension = extensionDepsSet.contains(wQualifier(d)))
+    }
+
+    val deploymentMvnDeps = depsWithExtensions.map(d =>
+      mvn"${d.groupId}:${d.artifactId}-deployment:${d.version}".exclude("*" -> "*")
+    )
+
+    val deploymentDeps = millResolver().artifacts(deploymentMvnDeps)
+
+    val quarkusDeploymentDeps = deploymentDeps.detailedArtifacts0.map {
+      case (dependency, _, _, file) =>
+        ApplicationModelWorker.Dependency(
+          dependency.module.organization.value,
+          dependency.module.name.value,
+          dependency.versionConstraint.asString,
+          os.Path(file),
+          isRuntime = true,
+          isDeployment = true,
+          isTopLevelArtifact = false,
+          hasExtension = false
+        )
+    }
+
+    val quarkusCompileDeps =
+      compileDeps.detailedArtifacts0.filterNot(da => runtimeDepSet.contains(qualifier(da._1))).map {
+        case (dependency, _, _, file) =>
+          ApplicationModelWorker.Dependency(
+            dependency.module.organization.value,
+            dependency.module.name.value,
+            dependency.versionConstraint.asString,
+            os.Path(file),
+            isRuntime = false,
+            isDeployment = false,
+            isTopLevelArtifact = false,
+            hasExtension = false
+          )
+      }
+
+    quarkusRuntimeDeps ++ quarkusCompileDeps ++ quarkusDeploymentDeps
   }
 
   // TODO most reliable way to get this?

@@ -11,6 +11,10 @@ object `package` extends QuarkusModule, MavenModule, PublishModule { outer =>
     mvn"io.quarkus:quarkus-rest"
   )
 
+  override def javacOptions = super.javacOptions() ++ Seq(
+    "-parameters"
+  )
+
   def artifactName = "6-quarkus-getting-started"
 
   def quarkusVersion = "3.31.1"

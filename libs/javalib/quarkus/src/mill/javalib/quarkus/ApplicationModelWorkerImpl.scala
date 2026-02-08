@@ -1,6 +1,5 @@
 package mill.javalib.quarkus
 
-import io.quarkus.bootstrap.{BootstrapAppModelFactory, BootstrapConstants}
 import io.quarkus.bootstrap.app.{ApplicationModelSerializer, AugmentAction, QuarkusBootstrap}
 import io.quarkus.bootstrap.model.{
   ApplicationModelBuilder,
@@ -15,18 +14,14 @@ import io.quarkus.bootstrap.workspace.{
   WorkspaceModule,
   WorkspaceModuleId
 }
-import io.quarkus.builder.{BuildChainBuilder, BuildContext}
-import io.quarkus.deployment.builditem.AppModelProviderBuildItem
-import io.quarkus.deployment.pkg.PackageConfig.JarConfig.JarType
-import io.quarkus.deployment.pkg.builditem.JarBuildItem
+import io.quarkus.bootstrap.{BootstrapAppModelFactory, BootstrapConstants}
 import io.quarkus.fs.util.ZipUtils
-import io.quarkus.maven.dependency.{ArtifactCoords, ResolvedDependencyBuilder}
+import io.quarkus.maven.dependency.{ArtifactCoords, DependencyFlags, ResolvedDependencyBuilder}
 import io.quarkus.paths.PathList
 import io.quarkus.runner.bootstrap.AugmentActionImpl
 
 import java.nio.file.Files
 import java.util.Properties
-import java.util.function.Consumer
 import scala.jdk.CollectionConverters
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
@@ -50,33 +45,17 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
       .setLocalProjectDiscovery(true)
       .build()
 
-    val buildItem = new Consumer[BuildChainBuilder] {
-      override def accept(t: BuildChainBuilder): Unit = {
-        t.addBuildStep(
-          buildStep = (context: BuildContext) =>
-            context.produce(
-              new AppModelProviderBuildItem(applicationModel)
-            )
-        )
-        t.addBuildStep(
-          buildStep = (context: BuildContext) =>
-            context.produce(
-              new JarBuildItem(
-                destRunJar.toNIO,
-                jar.toNIO,
-                libDir.toNIO,
-                JarType.FAST_JAR,
-                "main" // TODO adjust
-              )
-            )
-        )
-      }
-    }
-
     val augmentAction: AugmentAction =
-      new AugmentActionImpl(quarkusBootstrap.bootstrap(), List(buildItem).asJava, List.empty.asJava)
+      new AugmentActionImpl(quarkusBootstrap.bootstrap(), List.empty.asJava, List.empty.asJava)
 
     os.Path(augmentAction.createProductionApplication().getJar.getPath)
+  }
+
+  override def quarkusDeploymentDependencies(runtimeDeps: Seq[ApplicationModelWorker.Dependency])
+      : Seq[ApplicationModelWorker.Dependency] = {
+    runtimeDeps.filter(
+      hasDeploymentDep
+    )
   }
 
   override def quarkusGenerateApplicationModel(
@@ -88,12 +67,29 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
 
     def toResolvedDependencyBuilder(dep: ApplicationModelWorker.Dependency)
         : ResolvedDependencyBuilder = {
-      ResolvedDependencyBuilder.newInstance()
+      val builder = ResolvedDependencyBuilder.newInstance()
         .setResolvedPath(dep.resolvedPath.toNIO)
         .setGroupId(dep.groupId)
         .setArtifactId(dep.artifactId)
         .setVersion(dep.version)
-        .setFlags(12) // TODO properly flag the dependencies
+
+      if (dep.isRuntime) {
+        builder.setRuntimeCp()
+      }
+
+      builder.setDirect(dep.isTopLevelArtifact)
+
+      if (dep.hasExtension) {
+        builder.setFlags(DependencyFlags.RUNTIME_EXTENSION_ARTIFACT)
+        builder.setDeploymentCp()
+        if (dep.isTopLevelArtifact)
+          builder.setFlags(DependencyFlags.TOP_LEVEL_RUNTIME_EXTENSION_ARTIFACT)
+      }
+
+      if (dep.isDeployment)
+        builder.setDeploymentCp()
+
+      builder
     }
 
     val dependencies = appModel.dependencies.map(toResolvedDependencyBuilder)
@@ -166,7 +162,7 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
   private def processQuarkusDependency(
       artifactBuilder: ResolvedDependencyBuilder,
       modelBuilder: ApplicationModelBuilder
-  ) = {
+  ): Unit = {
     artifactBuilder.getResolvedPaths.asScala.filter(p =>
       Files.exists(p) && artifactBuilder.getType == ArtifactCoords.TYPE_JAR
     ).foreach {
@@ -190,11 +186,21 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
 
   }
 
+  private def hasDeploymentDep(dep: ApplicationModelWorker.Dependency): Boolean = {
+    val artifact = dep.resolvedPath
+    val metaInfPathExists = Using.resource(ZipUtils.newFileSystem(artifact.toNIO)) { artifactFs =>
+      val quarkusDir = artifactFs.getPath(BootstrapConstants.META_INF)
+      val quarkusDescr = quarkusDir.resolve(BootstrapConstants.DESCRIPTOR_FILE_NAME)
+      Files.exists(quarkusDescr)
+    }
+    metaInfPathExists
+  }
+
   private def processQuarkusDir(
       artifactBuilder: ResolvedDependencyBuilder,
       quarkusDir: java.nio.file.Path,
       modelBuilder: ApplicationModelBuilder
-  ) = {
+  ): Unit = {
     val quarkusDescr = quarkusDir.resolve(BootstrapConstants.DESCRIPTOR_FILE_NAME)
 
     if (Files.exists(quarkusDescr)) {
