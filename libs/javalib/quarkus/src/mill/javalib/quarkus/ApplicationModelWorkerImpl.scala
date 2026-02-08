@@ -2,9 +2,18 @@ package mill.javalib.quarkus
 
 import io.quarkus.bootstrap.BootstrapAppModelFactory
 import io.quarkus.bootstrap.app.{ApplicationModelSerializer, AugmentAction, QuarkusBootstrap}
-import io.quarkus.bootstrap.model.{ApplicationModelBuilder, PlatformImportsImpl, PlatformReleaseInfo}
+import io.quarkus.bootstrap.model.{
+  ApplicationModelBuilder,
+  PlatformImportsImpl,
+  PlatformReleaseInfo
+}
 import io.quarkus.bootstrap.util.BootstrapUtils
-import io.quarkus.bootstrap.workspace.{ArtifactSources, SourceDir, WorkspaceModule, WorkspaceModuleId}
+import io.quarkus.bootstrap.workspace.{
+  ArtifactSources,
+  SourceDir,
+  WorkspaceModule,
+  WorkspaceModuleId
+}
 import io.quarkus.builder.{BuildChainBuilder, BuildContext}
 import io.quarkus.deployment.builditem.AppModelProviderBuildItem
 import io.quarkus.deployment.pkg.PackageConfig.JarConfig.JarType
@@ -19,40 +28,47 @@ import scala.jdk.CollectionConverters.*
 
 class ApplicationModelWorkerImpl extends ApplicationModelWorker {
 
-  def quarkusBootstrapApplication(applicationModelFile: os.Path, destRunJar: os.Path, jar: os.Path, libDir: os.Path): os.Path = {
+  def quarkusBootstrapApplication(
+      applicationModelFile: os.Path,
+      destRunJar: os.Path,
+      jar: os.Path,
+      libDir: os.Path
+  ): os.Path = {
     val applicationModel = ApplicationModelSerializer
       .deserialize(applicationModelFile.toNIO)
 
     val quarkusBootstrap = QuarkusBootstrap.builder()
-      .setApplicationRoot(applicationModel.getApplicationModule.getModuleDir.toPath) // TODO this won't be always the case
+      .setApplicationRoot(
+        applicationModel.getApplicationModule.getModuleDir.toPath
+      ) // TODO this won't be always the case
       .setExistingModel(applicationModel)
       .build()
 
     val buildItem = new Consumer[BuildChainBuilder] {
       override def accept(t: BuildChainBuilder): Unit = {
         t.addBuildStep(
-          buildStep = (context: BuildContext) => context.produce(
-            new AppModelProviderBuildItem(applicationModel)
-          )
+          buildStep = (context: BuildContext) =>
+            context.produce(
+              new AppModelProviderBuildItem(applicationModel)
+            )
         )
         t.addBuildStep(
-          buildStep = (context: BuildContext) => context.produce(
-            new JarBuildItem(
-              destRunJar.toNIO,
-              jar.toNIO,
-              libDir.toNIO,
-              JarType.FAST_JAR,
-              "main" // TODO adjust
+          buildStep = (context: BuildContext) =>
+            context.produce(
+              new JarBuildItem(
+                destRunJar.toNIO,
+                jar.toNIO,
+                libDir.toNIO,
+                JarType.FAST_JAR,
+                "main" // TODO adjust
+              )
             )
-          )
         )
       }
     }
 
-
-
-    val augmentAction: AugmentAction = new AugmentActionImpl(quarkusBootstrap.bootstrap(), List(buildItem).asJava, List.empty.asJava)
-
+    val augmentAction: AugmentAction =
+      new AugmentActionImpl(quarkusBootstrap.bootstrap(), List(buildItem).asJava, List.empty.asJava)
 
     os.Path(augmentAction.createProductionApplication().getJar.getPath)
   }
@@ -94,22 +110,27 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
       .setArtifactId(appModel.artifactId)
       .setVersion(appModel.version)
 
-
     val platformImport = new PlatformImportsImpl()
 
     val boms: Seq[ArtifactCoords] = appModel.boms.map { bom =>
       val parts = bom.split(":") // todo make a bom model in the AppModel
 
       ArtifactCoords.pom(
-      parts(0),
-      parts(1),
-      parts(2)
-    )}
+        parts(0),
+        parts(1),
+        parts(2)
+      )
+    }
 
     boms.foreach(platformImport.getImportedPlatformBoms.add)
 
     platformImport.getPlatformReleaseInfo.add(
-      PlatformReleaseInfo("io.quarkus.platform", appModel.quarkusVersion, appModel.quarkusVersion, boms.toList.asJava)
+      PlatformReleaseInfo(
+        "io.quarkus.platform",
+        appModel.quarkusVersion,
+        appModel.quarkusVersion,
+        boms.toList.asJava
+      )
     )
 
     val modelBuilder = new ApplicationModelBuilder()

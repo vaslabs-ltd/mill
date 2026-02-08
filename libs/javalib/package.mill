@@ -183,7 +183,7 @@ object `package` extends MillStableScalaModule {
       Deps.quarkusAppModel,
       Deps.quarkusBootstrapCore,
       Deps.quarkusBootstrapMavenResolver,
-      Deps.quarkusCoreDeployment,
+      Deps.quarkusCoreDeployment
     )
   }
 

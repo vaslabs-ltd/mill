@@ -120,9 +120,7 @@ trait QuarkusModule extends JavaModule {
 
   def quarkusLibDir: T[PathRef] = Task {
     val dest = Task.dest
-    resolvedMvnDeps().foreach(
-      pr => os.copy.into(pr.path, dest)
-    )
+    resolvedMvnDeps().foreach(pr => os.copy.into(pr.path, dest))
     PathRef(dest)
   }
 
