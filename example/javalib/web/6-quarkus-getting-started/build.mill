@@ -5,33 +5,26 @@ import mill.*, javalib.*
 import publish.*
 import mill.javalib.quarkus.QuarkusModule
 
-object `package` extends QuarkusModule, MavenModule, PublishModule { outer =>
+object `package` extends QuarkusModule, MavenModule { outer =>
 
   def mvnDeps = Seq(
     mvn"io.quarkus:quarkus-arc",
     mvn"io.quarkus:quarkus-rest"
   )
 
+  def quarkusArtifactId = "6-quarkus-getting-started"
+  def quarkusGroupId = "com.lihaoyi.example"
+
   override def javacOptions = super.javacOptions() ++ Seq(
     "-parameters"
   )
 
-  def artifactName = "6-quarkus-getting-started"
-
   def quarkusVersion = "3.31.2"
 
-  def publishVersion = "0.0.1"
-
-  def pomSettings = PomSettings(
-    description = "6-quarkus-getting-started",
-    organization = "org.acme",
-    url = "https://github.com/lihaoyi/example",
-    licenses = Seq(License.MIT),
-    versionControl = VersionControl.github("lihaoyi", "example"),
-    developers = Seq(Developer("lihaoyi", "Li Haoyi", "https://github.com/lihaoyi"))
-  )
-
 }
+
+// This example demonstrates how to setup a simple Quarkus application.
+// Quarkus support is an ongoing effort. Tests are not supported yet.
 
 /** Usage
 

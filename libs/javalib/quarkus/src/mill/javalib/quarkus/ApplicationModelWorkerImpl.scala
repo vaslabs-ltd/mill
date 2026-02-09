@@ -26,13 +26,34 @@ import scala.jdk.CollectionConverters
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
 
+/**
+ * The ApplicationModelWorker is mill's integration against Quarkus bootstrapping.
+ *
+ * At the moment there are 2 stages supported:
+ * 1. Create a single module's Application Model and serialize it
+ * 2. Feed the deserialised model from step 1 to [[QuarkusBootstrap]] and execute
+ * the Quarkus build with an AugmentAction
+ *
+ * In addition, a helper method supports picking in the library or module dependencies
+ * to detect which have deployment dependencies.
+ *
+ * For more information on that see [[https://quarkus.io/guides/conditional-extension-dependencies]]
+ */
 class ApplicationModelWorkerImpl extends ApplicationModelWorker {
 
+  /**
+   * Bootstraps a Quarkus Application with the application model
+   * provided (usually created by [[quarkusGenerateApplicationModel]]).
+   * Needs a target directory and a compiled artifact (jar)
+   * @param applicationModelFile The path of the serialized application model file
+   * @param destRunJar The directory to store the resulting `quarkus-run.jar`
+   * @param jar The jar created by the Mill JavaModule (outside of Quarkus)
+   * @return The path of the resulting `quarkus-run.jar`
+   */
   def quarkusBootstrapApplication(
       applicationModelFile: os.Path,
       destRunJar: os.Path,
-      jar: os.Path,
-      libDir: os.Path
+      jar: os.Path
   ): os.Path = {
     val applicationModel = ApplicationModelSerializer
       .deserialize(applicationModelFile.toNIO)
@@ -54,6 +75,12 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
     os.Path(augmentAction.createProductionApplication().getJar.getPath)
   }
 
+  /**
+   * A helper method for any Mill [[QuarkusModule]] that detects which dependencies are runtime
+   * extension artifacts and thus have a deployment equivalent as specified in [[https://quarkus.io/guides/conditional-extension-dependencies]]
+   * @param runtimeDeps The already resolved runtime dependencies
+   * @return The sublist of the runtimeDeps, which are extension runtime deps.
+   */
   override def quarkusDeploymentDependencies(runtimeDeps: Seq[ApplicationModelWorker.Dependency])
       : Seq[ApplicationModelWorker.Dependency] = {
     runtimeDeps.filter(
@@ -61,6 +88,11 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
     )
   }
 
+  /**
+   * @param appModel The AppModel domain object
+   * @param destination The directory to store the serialized application model file (*.dat)
+   * @return The path of the file with the serialized Quarkus Application Model
+   */
   override def quarkusGenerateApplicationModel(
       appModel: ApplicationModelWorker.AppModel,
       destination: os.Path
@@ -139,16 +171,16 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
       )
     )
 
-    // TODO parametarise via mill build
-    platformImport.getPlatformProperties.put("platform.quarkus.native.builder-image", "mandrel")
+    platformImport.getPlatformProperties.put(
+      "platform.quarkus.native.builder-image",
+      appModel.nativeImage
+    )
 
     val modelBuilder = new ApplicationModelBuilder()
       .setAppArtifact(resolvedDependencyBuilder)
       .setPlatformImports(platformImport)
       .addDependencies(dependencies.asJava)
 
-    // TODO the below are duplicates of the mill -> worker impl interaction
-    // clean up once everything works
     processQuarkusDependency(resolvedDependencyBuilder, modelBuilder)
 
     dependencies.foreach((resolvedDependencyBuilder: ResolvedDependencyBuilder) =>
@@ -166,6 +198,7 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
   }
 
   // utility function adapted from io.quarkus.gradle.tooling.GradleApplicationModelBuilder
+  // for implementation details see [[https://github.com/quarkusio/quarkus/blob/main/devtools/gradle/gradle-model/src/main/java/io/quarkus/gradle/tooling/GradleApplicationModelBuilder.java]]
   private def processQuarkusDependency(
       artifactBuilder: ResolvedDependencyBuilder,
       modelBuilder: ApplicationModelBuilder
