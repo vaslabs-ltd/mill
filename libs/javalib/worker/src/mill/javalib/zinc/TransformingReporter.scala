@@ -90,7 +90,6 @@ private object TransformingReporter {
 
         val line = intValue(pos.line(), -1)
         val pointer0 = intValue(pos.pointer(), -1)
-        val colNum = pointer0 + 1
 
         val space = pos.pointerSpace().orElse("")
         val endCol = intValue(pos.endColumn(), pointer0 + 1)
@@ -134,17 +133,30 @@ private object TransformingReporter {
             ).render
           } else lineContent0
 
+        val plainLineContent0 = fansi.Str(lineContent0).plainText
+        val plainLineLength = fansi.Str(lineContent).length
+
+        val rawColNum =
+          if (!isJavaFile || pointer0 < 0 || plainLineContent0.isEmpty) pointer0 + 1
+          else visualToSourceColumn(plainLineContent0, pointer0 + 1)
+        val colNum =
+          if (isJavaFile && rawColNum <= 0 && plainLineContent0.nonEmpty) 1
+          else rawColNum
+
+        val displayPointer0 = colNum - 1
+        val pointerPrefix =
+          if (displayPointer0 > 0 && plainLineContent0.nonEmpty)
+            plainLineContent0
+              .take(math.min(displayPointer0, plainLineContent0.length))
+              .map {
+                case '\t' => '\t'
+                case _ => ' '
+              }
+          else ""
         val pointerLength =
-          if (space.nonEmpty && pointer0 >= 0 && endCol >= 0)
-            math.max(
-              1,
-              math.min(
-                endCol - pointer0,
-                // Make sure to use the plaintext length of lineContent,
-                // since it may have color codes
-                fansi.Str(lineContent).length - space.length
-              )
-            )
+          if (space.nonEmpty && displayPointer0 >= 0 && endCol >= 0)
+            math.max(1, math.min(endCol - displayPointer0, plainLineLength - space.length))
+          else if (space.nonEmpty) math.max(1, plainLineLength - space.length)
           else 1
 
         mill.constants.Util.formatError(
@@ -154,8 +166,30 @@ private object TransformingReporter {
           lineContent,
           message,
           pointerLength,
+          pointerPrefix,
           shade
         )
+    }
+  }
+
+  /**
+   * Java diagnostics report columns with tabs expanded to 8 spaces, but our source
+   * lines keep tabs as one char. Convert from visual columns to source-code columns
+   * so pointer location and width match the rendered line.
+   */
+  private def visualToSourceColumn(line: String, visualCol: Int): Int = {
+    if (visualCol <= 1) 1
+    else {
+      var visual = 1
+      var code = 1
+      val iter = line.iterator
+      while (iter.hasNext && visual < visualCol) {
+        val char = iter.next()
+        if (char == '\t') visual += 8 - ((visual - 1) % 8)
+        else visual += 1
+        code += 1
+      }
+      code
     }
   }
 
