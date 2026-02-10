@@ -11,8 +11,9 @@ object `package` extends QuarkusModule, MavenModule { outer =>
     mvn"io.quarkus:quarkus-rest"
   )
 
-  def quarkusArtifactId = "6-quarkus-getting-started"
-  def quarkusGroupId = "com.lihaoyi.example"
+  def artifactId = "6-quarkus-getting-started"
+  def artifactGroupId = "com.lihaoyi.example"
+  def artifactVersion = "0.0.1-SNAPSHOT"
 
   override def javacOptions = super.javacOptions() ++ Seq(
     "-parameters"
@@ -27,8 +28,8 @@ object `package` extends QuarkusModule, MavenModule { outer =>
 
 /** Usage
 
-> ./mill show quarkusJar
-...out/quarkusJar.dest/quarkus/quarkus-run.jar/quarkus-app/quarkus-run.jar...
+> ./mill show quarkusRunJar
+...out/quarkusRunJar.dest/quarkus/quarkus-run.jar/quarkus-app/quarkus-run.jar...
 
 > ./mill show runBackground
 

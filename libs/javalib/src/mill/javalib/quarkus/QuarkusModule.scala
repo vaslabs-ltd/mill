@@ -21,43 +21,50 @@ trait QuarkusModule extends JavaModule {
 
   /**
    * If this is a [[PublishModule]] then group id is derived from [[PublishModule.pomSettings]]
-   * otherwise it's set to `unspecified`.
-   *
-   * It's used for creating the quarkus Application Model and bootstrapping this Quarkus module
+   * otherwise it needs to be setup by the user.
    */
-  def quarkusGroupId: T[String] = this match {
+  def artifactGroupId: T[String] = this match {
     case m: PublishModule =>
       Task {
         m.pomSettings().organization
       }
     case _ =>
       Task {
-        "unspecified"
+        Task.fail(
+          "The moduleGroupId is not set. Please override the moduleGroupId so quarkus can generate the application model for this module"
+        )
       }
   }
 
   /**
    * If this is a [[PublishModule]] then artifact version is derived from [[PublishModule.publishVersion]]
-   * otherwise it's set to `0.0.1-SNAPSHOT`.
+   * otherwise it needs to be setup by the user.
    *
    * It's used for creating the quarkus Application Model and bootstrapping this Quarkus module
    */
-  def quarkusArtifactVersion: T[String] = this match {
+  def artifactVersion: T[String] = this match {
     case m: PublishModule =>
       Task {
         m.publishVersion()
       }
     case _ =>
       Task {
-        "0.0.1-SNAPSHOT"
+        Task.fail(
+          "The artifactVersion is not set. Please override the artifactVersion so quarkus can generate the application model for this module"
+        )
       }
   }
 
   /**
    * The artifact id used to Quarkus bootstrap this module.
-   * Defaults to [[artifactId]]
+   * It needs to be set and a non-empty String for the Quarkus application model serialization to work!
    */
-  def quarkusArtifactId: T[String] = artifactId()
+  def artifactId: T[String] = Task {
+    Option(super.artifactId()).filterNot(_.isEmpty)
+      .getOrElse(Task.fail(
+        "The artifactVersion is not set. Please override the artifactVersion so quarkus can generate the application model for this module"
+      ))
+  }
 
   override def bomMvnDeps: Task.Simple[Seq[Dep]] = super.bomMvnDeps() ++ Seq(
     mvn"io.quarkus.platform:quarkus-bom:${quarkusVersion()}"
@@ -264,9 +271,9 @@ trait QuarkusModule extends JavaModule {
         buildDir = compile().classes.path,
         buildFile = quarkusMillBuildFile().path,
         quarkusVersion = quarkusVersion(),
-        groupId = quarkusGroupId(),
-        artifactId = quarkusArtifactId(),
-        version = quarkusArtifactVersion(),
+        groupId = artifactGroupId(),
+        artifactId = artifactId(),
+        version = artifactVersion(),
         sourcesDir = sources().head.path, // TODO support multiple
         resourcesDir = resources().head.path,
         compiledPath = compile().classes.path,
