@@ -6,20 +6,16 @@ import mill.javalib.quarkus.QuarkusModule
 
 object `package` extends QuarkusModule, MavenModule { outer =>
 
+  def quarkusVersion = "3.31.2"
+
+  def artifactGroupId = "com.lihaoyi.example"
+  def artifactId = "6-quarkus-getting-started"
+  def artifactVersion = "0.0.1-SNAPSHOT"
+
   def mvnDeps = Seq(
     mvn"io.quarkus:quarkus-arc",
     mvn"io.quarkus:quarkus-rest"
   )
-
-  def artifactId = "6-quarkus-getting-started"
-  def artifactGroupId = "com.lihaoyi.example"
-  def artifactVersion = "0.0.1-SNAPSHOT"
-
-  override def javacOptions = super.javacOptions() ++ Seq(
-    "-parameters"
-  )
-
-  def quarkusVersion = "3.31.2"
 
 }
 
