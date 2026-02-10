@@ -1,11 +1,11 @@
 package mill.javalib.quarkus
 
 import coursier.core.VariantSelector.ConfigurationBased
-import mill.api.{BuildCtx, PathRef}
-import mill.constants.DaemonFiles
+import mill.api.PathRef
 import mill.{T, Task}
 import mill.javalib.{Dep, DepSyntax, JavaModule, PublishModule}
 import mill.util.Jvm
+import upickle.default.ReadWriter.join
 
 import java.net.URLClassLoader
 
@@ -27,9 +27,13 @@ trait QuarkusModule extends JavaModule {
    */
   def quarkusGroupId: T[String] = this match {
     case m: PublishModule =>
-      Task { m.pomSettings().organization }
+      Task {
+        m.pomSettings().organization
+      }
     case _ =>
-      Task { "unspecified" }
+      Task {
+        "unspecified"
+      }
   }
 
   /**
@@ -40,9 +44,13 @@ trait QuarkusModule extends JavaModule {
    */
   def quarkusArtifactVersion: T[String] = this match {
     case m: PublishModule =>
-      Task { m.publishVersion() }
+      Task {
+        m.publishVersion()
+      }
     case _ =>
-      Task { "0.0.1-SNAPSHOT" }
+      Task {
+        "0.0.1-SNAPSHOT"
+      }
   }
 
   /**
@@ -79,33 +87,21 @@ trait QuarkusModule extends JavaModule {
   }
 
   /**
-   * Executes the run jar created from [[quarkusJar]] in the background
+   * Quarkus builds its own run classpath and manages it
+   * via the launcher (quarkus-run.jar) which handles
+   * running the application.
    */
-  def quarkusRunBackground(args: mill.api.Args) = Task.Command(persistent = true) {
-    val backgroundPaths = mill.javalib.RunModule.BackgroundPaths(Task.dest)
-    val pwd0 = os.Path(java.nio.file.Paths.get(".").toAbsolutePath)
-
-    mill.util.Jvm.spawnProcess(
-      mainClass = "mill.javalib.backgroundwrapper.MillBackgroundWrapper",
-      classPath = mill.javalib.JvmWorkerModule.backgroundWrapperClasspath().map(_.path),
-      jvmArgs = Nil,
-      mainArgs = backgroundPaths.toArgs ++ Seq(
-        "<subprocess>",
-        Jvm.javaExe(javaHome().map(_.path)),
-        "-jar",
-        quarkusJar().path.toString
-      ) ++ args.value,
-      cwd = BuildCtx.workspaceRoot,
-      stdin = "",
-      // Hack to forward the background subprocess output to the Mill server process
-      // stdout/stderr files, so the output will get properly slurped up by the Mill server
-      // and shown to any connected Mill client even if the current command has completed
-      stdout = os.PathAppendRedirect(pwd0 / ".." / DaemonFiles.stdout),
-      stderr = os.PathAppendRedirect(pwd0 / ".." / DaemonFiles.stderr),
-      javaHome = javaHome().map(_.path)
-    )
-    ()
+  override def runClasspath: T[Seq[PathRef]] = Task {
+    Seq(quarkusJar())
   }
+
+  /**
+   * Quarkus builds its own run classpath and manages it
+   * via the launcher (quarkus-run.jar) which handles
+   * and doesn't need a main class. However, for mill run to work
+   * we need to put the Quarkus entrypoint here which is `io.quarkus.bootstrap.runner.QuarkusEntryPoint`
+   */
+  override def finalMainClass: T[String] = "io.quarkus.bootstrap.runner.QuarkusEntryPoint"
 
   def quarkusApplicationModelWorkerClassloader: Task.Worker[URLClassLoader] = Task.Worker {
 

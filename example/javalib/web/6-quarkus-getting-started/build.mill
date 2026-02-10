@@ -30,11 +30,11 @@ object `package` extends QuarkusModule, MavenModule { outer =>
 > ./mill show quarkusJar
 ...out/quarkusJar.dest/quarkus/quarkus-run.jar/quarkus-app/quarkus-run.jar...
 
-> ./mill show quarkusRunBackground
+> ./mill show runBackground
 
 > curl http://localhost:${PORT:-8080}/hello
 Hello from Quarkus REST
 
-> ./mill clean quarkusRunBackground
+> ./mill clean runBackground
 
 */
