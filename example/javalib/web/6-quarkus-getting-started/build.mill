@@ -6,7 +6,7 @@ import mill.javalib.quarkus.QuarkusModule
 
 object `package` extends QuarkusModule, MavenModule { outer =>
 
-  def quarkusVersion = "3.31.2"
+  def quarkusPlatformVersion = "3.31.2"
 
   def artifactGroupId = "com.lihaoyi.example"
   def artifactId = "6-quarkus-getting-started"
