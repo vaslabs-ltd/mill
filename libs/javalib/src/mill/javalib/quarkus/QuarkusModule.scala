@@ -115,7 +115,14 @@ trait QuarkusModule extends JavaModule {
 
   /**
    * The worker which provides the Quarkus Bootstrap process for creating
-   * the quarkus Application Model and building the Application itself
+   * the quarkus Application Model and building the Application itself.
+   *
+   * This model is used by the QuarkusBootstrap to derive the dependencies
+   * and the build steps (e.g. packaging a jar or a native app), checking
+   * which dependencies are runtime, which are deployable etc.
+   *
+   * See also [[quarkusDependencies]] and [[quarkusApplicationModelWorker]] for following the
+   * full implementation steps.
    */
   def quarkusApplicationModelWorker: Task.Worker[ApplicationModelWorker] = Task.Worker {
     quarkusApplicationModelWorkerClassloader().loadClass(
