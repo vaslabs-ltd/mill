@@ -22,7 +22,9 @@ object ApplicationModelWorker {
 
   /**
    * This app model has the necessary
-   * elements to build the Quarkus Application Model.
+   * elements to build the Quarkus Application Model. This data
+   * class is used to populate the quarkus `ApplicationModelBuilder` and `PlatformInfo`
+   * which are serialized for the QuarkusBootstrap to be able to create the Quarkus build artifacts.
    *
    * The effort for Quarkus support is ongoing.
    *
