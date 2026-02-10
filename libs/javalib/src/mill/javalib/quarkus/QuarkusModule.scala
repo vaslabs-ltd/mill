@@ -13,11 +13,13 @@ import java.net.URLClassLoader
 trait QuarkusModule extends JavaModule {
 
   /**
-   * The version of the quarkus platform. Used for
+   * The version of the quarkus platform (e.g. 3.31.2). Used for
    * setting the `io.quarkus.platform:quarkus-bom` version
    * It's used for creating the quarkus Application Model and bootstrapping this Quarkus module
+   *
+   * For the latest version check [[https://quarkus.io/]]
    */
-  def quarkusVersion: T[String]
+  def quarkusPlatformVersion: T[String]
 
   /**
    * If this is a [[PublishModule]] then group id is derived from [[PublishModule.pomSettings]]
@@ -67,7 +69,7 @@ trait QuarkusModule extends JavaModule {
   }
 
   override def bomMvnDeps: Task.Simple[Seq[Dep]] = super.bomMvnDeps() ++ Seq(
-    mvn"io.quarkus.platform:quarkus-bom:${quarkusVersion()}"
+    mvn"io.quarkus.platform:quarkus-bom:${quarkusPlatformVersion()}"
   )
 
   /**
@@ -270,7 +272,7 @@ trait QuarkusModule extends JavaModule {
         projectRoot = moduleDir,
         buildDir = compile().classes.path,
         buildFile = quarkusMillBuildFile().path,
-        quarkusVersion = quarkusVersion(),
+        quarkusVersion = quarkusPlatformVersion(),
         groupId = artifactGroupId(),
         artifactId = artifactId(),
         version = artifactVersion(),
