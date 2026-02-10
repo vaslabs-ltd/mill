@@ -92,7 +92,7 @@ trait QuarkusModule extends JavaModule {
    * running the application.
    */
   override def runClasspath: T[Seq[PathRef]] = Task {
-    Seq(quarkusJar())
+    Seq(quarkusRunJar())
   }
 
   /**
@@ -106,7 +106,7 @@ trait QuarkusModule extends JavaModule {
   def quarkusApplicationModelWorkerClassloader: Task.Worker[URLClassLoader] = Task.Worker {
 
     val classpath = defaultResolver().classpath(
-      quarkusBootstrapDeps() ++ Seq(Dep.millProjectModule("mill-libs-javalib-quarkus")),
+      quarkusBootstrapDeps() ++ Seq(Dep.millProjectModule("mill-libs-javalib-quarkus-worker")),
       boms = allBomDeps()
     )
 
@@ -262,7 +262,13 @@ trait QuarkusModule extends JavaModule {
 
   }
 
-  def quarkusJar: T[PathRef] = Task {
+  /**
+   * The quarkus-run.jar which is a standalone fast jar
+   * created by QuarkusBootstrap using the generated ApplicationModel
+   * generated from the [[quarkusSerializedAppModel]]
+   * @return the path of the quarkus-run.jar
+   */
+  def quarkusRunJar: T[PathRef] = Task {
     val dest = Task.dest / "quarkus"
     os.makeDir.all(dest)
     val jarPath = quarkusApplicationModelWorker().quarkusBootstrapApplication(
