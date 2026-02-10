@@ -1,5 +1,8 @@
 package mill.javalib.quarkus
 
+import mill.api.daemon.experimental
+
+@experimental
 trait ApplicationModelWorker extends AutoCloseable {
   def quarkusBootstrapApplication(
       applicationModelFile: os.Path,
