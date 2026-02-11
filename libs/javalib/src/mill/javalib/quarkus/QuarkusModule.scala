@@ -254,16 +254,15 @@ trait QuarkusModule extends JavaModule {
   /**
    * The quarkus Application Model requires a build file. While
    * in Mill, we don't let Quarkus resolve any dependencies (quarkus itself
-   * does not have mill support to understand what's going on) this is
+   * does not have mill support to understand what's going on) this exists
    * to keep the Quarkus Application model serialization from complaining.
    *
-   * Technically, in Mill's use-case, we could pass any file here, it wouldn't make a difference.
-   * TODO is this the most reliable way to get this?
+   * For now, we pass a dummy file.
    */
-  def quarkusMillBuildFile: Task.Simple[PathRef] = Task.Input {
-    os.list(Task.ctx().workspace).find(_.ext == "mill").map(PathRef(_)).getOrElse(
-      Task.fail("Coulnd't find mill definition")
-    )
+  def quarkusMillBuildFile: Task.Simple[PathRef] = Task {
+    val dummyFile = Task.dest / "dummy_build_file"
+    os.write(dummyFile, "dummy")
+    PathRef(dummyFile)
   }
 
   def quarkusSerializedAppModel: T[PathRef] = Task {
