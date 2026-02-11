@@ -18,7 +18,6 @@ import io.quarkus.bootstrap.{BootstrapAppModelFactory, BootstrapConstants}
 import io.quarkus.fs.util.ZipUtils
 import io.quarkus.maven.dependency.{ArtifactCoords, DependencyFlags, ResolvedDependencyBuilder}
 import io.quarkus.paths.PathList
-import io.quarkus.runner.bootstrap.AugmentActionImpl
 
 import java.nio.file.Files
 import java.util.Properties
@@ -69,8 +68,7 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
       .setBaseClassLoader(getClass.getClassLoader)
       .build()
 
-    val augmentAction: AugmentAction =
-      new AugmentActionImpl(quarkusBootstrap.bootstrap(), List.empty.asJava, List.empty.asJava)
+    val augmentAction: AugmentAction = quarkusBootstrap.bootstrap().createAugmentor()
 
     os.Path(augmentAction.createProductionApplication().getJar.getPath)
   }
