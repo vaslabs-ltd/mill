@@ -1,0 +1,37 @@
+package build
+
+import mill.*, javalib.*
+
+import mill.javalib.quarkus.QuarkusModule
+
+object `package` extends QuarkusModule, MavenModule {
+
+  def quarkusPlatformVersion = "3.31.2"
+
+  def artifactGroupId = "com.lihaoyi.example"
+  def artifactId = "6-quarkus-getting-started"
+  def artifactVersion = "0.0.1-SNAPSHOT"
+
+  def mvnDeps = Seq(
+    mvn"io.quarkus:quarkus-arc",
+    mvn"io.quarkus:quarkus-rest"
+  )
+
+}
+
+// This example demonstrates how to setup a simple Quarkus application.
+// Quarkus support is an ongoing effort. Tests are not supported yet.
+
+/** Usage
+
+> ./mill show quarkusRunJar
+...out/quarkusRunJar.dest/quarkus/quarkus-run.jar/quarkus-app/quarkus-run.jar...
+
+> ./mill show runBackground
+
+> curl http://localhost:${PORT:-8080}/hello
+Hello from Quarkus REST
+
+> ./mill clean runBackground
+
+*/
