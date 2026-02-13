@@ -3,13 +3,10 @@ package mill.launcher
 import coursier.{Artifacts, Dependency, ModuleName, Organization, Resolve, VersionConstraint}
 import coursier.cache.{ArchiveCache, FileCache}
 import coursier.jvm.{JavaHome, JvmCache, JvmChannel, JvmIndex}
-import coursier.maven.MavenRepository
 import coursier.util.Task
 import coursier.core.Module
 import mill.constants.{BuildInfo, OutFiles, OutFolderMode}
 import upickle.default.*
-
-import java.io.File
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import mill.api.JsonFormatters.*
@@ -54,12 +51,17 @@ object CoursierClient {
   }
 
   def resolveMillDaemon(outMode: OutFolderMode, millRepositories: Seq[String]): Seq[os.Path] = {
-    val testOverridesRepos = Option(System.getenv("MILL_LOCAL_TEST_REPO"))
+    // FIXME All the messing with COURSIER_REPOSITORIES assumes user override repos only via this env var,
+    // rather than via Java properties or config files, whose use is less likely. Things might go wrong
+    // if ever users rely on those.
+    val overridesRepos = Option(System.getenv("COURSIER_REPOSITORIES"))
       .toSeq
-      .flatMap(_.split(File.pathSeparator).toSeq)
+      .flatMap(_.split('|').toSeq)
+
+    val millRepositories0 = millRepositories.sorted
 
     val cacheKey =
-      s"${BuildInfo.millVersion}:${testOverridesRepos.sorted.mkString(":")}:${millRepositories.sorted.mkString(":")}"
+      s"${BuildInfo.millVersion} ${overridesRepos.reverse.mkString("|")}|${millRepositories0.mkString("|")}"
 
     cached[Seq[os.Path]](
       cacheFile = cacheDir(outMode) / "mill-daemon-classpath",
@@ -69,15 +71,11 @@ object CoursierClient {
       val coursierCache0 = FileCache[Task]()
         .withLogger(coursier.cache.loggers.RefreshLogger.create())
 
-      val testOverridesMavenRepos = testOverridesRepos.map { path =>
-        MavenRepository(os.Path(path).toURI.toASCIIString)
-      }
-
-      val configuredRepos = mill.util.Jvm.reposFromStrings(millRepositories).get
+      val configuredRepos = mill.util.Jvm.reposFromStrings(millRepositories0).get
 
       val artifactsResultOrError = {
         // configuredRepos (from mill-repositories) comes first so user config takes precedence
-        val allRepos = configuredRepos ++ testOverridesMavenRepos ++ Resolve.defaultRepositories
+        val allRepos = configuredRepos ++ Resolve.defaultRepositories
         val resolve = Resolve()
           .withCache(coursierCache0)
           .withDependencies(Seq(Dependency(
