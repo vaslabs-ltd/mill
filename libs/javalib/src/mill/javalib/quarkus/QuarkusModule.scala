@@ -5,6 +5,7 @@ import mill.api.PathRef
 import mill.{T, Task}
 import mill.javalib.{Dep, DepSyntax, JavaModule, PublishModule}
 import mill.util.Jvm
+import os.Path
 import upickle.default.ReadWriter.join
 
 import java.io.File
@@ -331,24 +332,30 @@ trait QuarkusModule extends JavaModule { outer =>
   }
 
   /**
+   * A quarkus app is a build with a quarkus run jar
+   * and a native path.
+   */
+  def quarkusApp: T[ApplicationModelWorker.QuarkusApp] = Task {
+    val dest = Task.dest / "quarkus"
+    os.makeDir.all(dest)
+    quarkusApplicationModelWorker().quarkusBootstrapApplication(
+      quarkusSerializedAppModel().path,
+      dest,
+      jar().path
+    )
+  }
+
+  /**
    * The quarkus-run.jar which is a standalone fast jar
    * created by QuarkusBootstrap using the generated ApplicationModel
    * generated from the [[quarkusSerializedAppModel]]
    * @return the path of the quarkus-run.jar
    */
   def quarkusRunJar: T[PathRef] = Task {
-    val dest = Task.dest / "quarkus"
-    os.makeDir.all(dest)
-    val jarPath = quarkusApplicationModelWorker().quarkusBootstrapApplication(
-      quarkusSerializedAppModel().path,
-      dest / "quarkus-run.jar", // TODO use quarkus utility function
-      jar().path
-    )
-
-    PathRef(jarPath)
+    quarkusApp().runJar
   }
 
-  trait QuarkusTests extends QuarkusModule, JavaTests {
+  trait QuarkusTests extends QuarkusModule, JavaTests { outer =>
 
     override def quarkusPlatformVersion: T[String] = outer.quarkusPlatformVersion()
     override def artifactId: T[String] = outer.artifactId()
@@ -385,12 +392,23 @@ trait QuarkusModule extends JavaModule { outer =>
         s"-Dquarkus-internal-test.serialized-app-model.path=${quarkusSerializedAppModel().path}"
       )
     }
+
+    trait QuarkusNativeTest extends QuarkusTests {
+      override def testFramework: T[String] = outer.testFramework()
+      override def moduleDir: Path = outer.moduleDir / os.up / "native-test"
+      override def forkArgs: T[Seq[String]] = Task {
+        Seq(s"-Dbuild.output.directory=${quarkusApp().buildOutput.path}") ++ super.forkArgs()
+      }
+    }
   }
+
+
 
   trait QuarkusJunit extends QuarkusTests {
 
-    // TODO create a quarkus only Junit module
-    override def testFramework = "com.github.sbt.junit.jupiter.api.JupiterFramework"
+    override def testFramework: T[String] = Task {
+      "com.github.sbt.junit.jupiter.api.JupiterFramework"
+    }
 
     override def mandatoryMvnDeps: T[Seq[Dep]] = Task {
       Seq(

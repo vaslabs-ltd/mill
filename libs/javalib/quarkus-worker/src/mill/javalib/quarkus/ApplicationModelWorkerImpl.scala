@@ -55,7 +55,7 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
       applicationModelFile: os.Path,
       destRunJar: os.Path,
       jar: os.Path
-  ): os.Path = {
+  ): ApplicationModelWorker.QuarkusApp = {
     val applicationModel = ApplicationModelSerializer
       .deserialize(applicationModelFile.toNIO)
 
@@ -67,12 +67,18 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
       )
       .setTargetDirectory(destRunJar.toNIO)
       .setLocalProjectDiscovery(false)
+      .setIsolateDeployment(true)
       .setBaseClassLoader(getClass.getClassLoader)
       .build()
 
     val augmentAction: AugmentAction = quarkusBootstrap.bootstrap().createAugmentor()
 
-    os.Path(augmentAction.createProductionApplication().getJar.getPath)
+    val app = augmentAction.createProductionApplication()
+
+    val quarkusApp = ApplicationModelWorker.QuarkusApp(
+      destRunJar / "quarkus-app", os.Path(app.getJar.getPath), Option(app.getNativeResult).map(os.Path(_))
+    )
+    quarkusApp
   }
 
   /**

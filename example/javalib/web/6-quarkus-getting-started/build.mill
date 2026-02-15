@@ -9,7 +9,9 @@ object `package` extends QuarkusModule, MavenModule { outer =>
   def quarkusPlatformVersion = "3.31.2"
 
   def artifactGroupId = "com.lihaoyi.example"
+
   def artifactId = "6-quarkus-getting-started"
+
   def artifactVersion = "0.0.1-SNAPSHOT"
 
   def mvnDeps = Seq(
@@ -17,10 +19,13 @@ object `package` extends QuarkusModule, MavenModule { outer =>
     mvn"io.quarkus:quarkus-rest"
   )
 
-  object test extends MavenTests, QuarkusJunit {
+  trait QuarkusTestBase extends MavenTests, QuarkusJunit {
     def mvnDeps = Seq(
       mvn"io.rest-assured:rest-assured"
     )
+  }
+  object test extends QuarkusTestBase {
+    object nativeTest extends QuarkusNativeTest {}
   }
 
 }
