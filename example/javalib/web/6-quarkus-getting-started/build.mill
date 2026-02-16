@@ -1,3 +1,6 @@
+// This example demonstrates how to setup a simple Quarkus application.
+// Quarkus support is an ongoing effort. Native tests are not supported yet.
+
 package build
 
 import mill.*, javalib.*
@@ -6,7 +9,7 @@ import mill.javalib.quarkus.QuarkusModule
 
 object `package` extends QuarkusModule, MavenModule {
 
-  def quarkusPlatformVersion = "3.31.2"
+  def quarkusPlatformVersion = "3.31.3"
 
   def artifactGroupId = "com.lihaoyi.example"
   def artifactId = "6-quarkus-getting-started"
@@ -17,10 +20,15 @@ object `package` extends QuarkusModule, MavenModule {
     mvn"io.quarkus:quarkus-rest"
   )
 
+  object test extends MavenTests, QuarkusJunit {
+    def mvnDeps = Seq(
+      mvn"io.rest-assured:rest-assured"
+    )
+  }
+
 }
 
-// This example demonstrates how to setup a simple Quarkus application.
-// Quarkus support is an ongoing effort. Tests are not supported yet.
+// You can run and test the app as follows:
 
 /** Usage
 
@@ -33,5 +41,18 @@ object `package` extends QuarkusModule, MavenModule {
 Hello from Quarkus REST
 
 > ./mill clean runBackground
+
+> ./mill show test
+{
+  "msg": "",
+  "results": [
+    {
+      "fullyQualifiedName": "org.acme.GreetingResourceTest",
+      "selector": "testHelloEndpoint()",
+      "duration": ...,
+      "status": "Success"
+    }
+  ]
+}
 
 */

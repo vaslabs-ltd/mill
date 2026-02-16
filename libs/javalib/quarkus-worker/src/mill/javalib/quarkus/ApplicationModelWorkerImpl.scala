@@ -18,6 +18,8 @@ import io.quarkus.bootstrap.{BootstrapAppModelFactory, BootstrapConstants}
 import io.quarkus.fs.util.ZipUtils
 import io.quarkus.maven.dependency.{ArtifactCoords, DependencyFlags, ResolvedDependencyBuilder}
 import io.quarkus.paths.PathList
+import mill.javalib.quarkus.ApplicationModelWorker.AppMode.Test
+import mill.javalib.quarkus.ApplicationModelWorker.{AppMode, ModuleClassifier, ModuleData}
 
 import java.nio.file.Files
 import java.util.Properties
@@ -106,11 +108,13 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
         .setArtifactId(dep.artifactId)
         .setVersion(dep.version)
 
+      if (appModel.appMode == Test) {
+        builder.setDeploymentCp()
+        builder.setRuntimeCp()
+      }
       if (dep.isRuntime) {
         builder.setRuntimeCp()
       }
-
-      builder.setDirect(dep.isTopLevelArtifact)
 
       if (dep.hasExtension) {
         builder.setFlags(DependencyFlags.RUNTIME_EXTENSION_ARTIFACT)
@@ -127,21 +131,29 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
 
     val dependencies = appModel.dependencies.map(toResolvedDependencyBuilder)
 
+    val workspaceModuleBuilder = WorkspaceModule.builder()
+      .setModuleDir(appModel.projectRoot.toNIO)
+      .setModuleId(
+        WorkspaceModuleId.of(appModel.groupId, appModel.artifactId, appModel.version)
+      ).setBuildDir(appModel.buildDir.toNIO)
+      .setBuildFile(appModel.buildFile.toNIO)
+
+    appModel.moduleData.foreach(md =>
+      workspaceModuleBuilder.addArtifactSources(
+        artifactSources(md)
+      )
+    )
+
     val resolvedDependencyBuilder = ResolvedDependencyBuilder.newInstance().setWorkspaceModule(
-      WorkspaceModule.builder()
-        .setModuleDir(appModel.projectRoot.toNIO)
-        .setModuleId(
-          WorkspaceModuleId.of(appModel.groupId, appModel.artifactId, appModel.version)
-        ).addArtifactSources(
-          ArtifactSources.main(
-            // TODO generated sources?
-            SourceDir.of(appModel.sourcesDir.toNIO, appModel.compiledPath.toNIO),
-            SourceDir.of(appModel.resourcesDir.toNIO, appModel.compiledResources.toNIO)
-          )
-        ).setBuildDir(appModel.buildDir.toNIO)
-        .setBuildFile(appModel.buildFile.toNIO)
+      workspaceModuleBuilder
         .build()
-    ).setResolvedPaths(PathList.of(appModel.compiledPath.toNIO, appModel.compiledResources.toNIO))
+    ).setResolvedPaths(
+      PathList.of(
+        appModel.moduleData.flatMap(md =>
+          Seq(md.sources.destDir.toNIO, md.resources.destDir.toNIO)
+        )*
+      )
+    )
       .setGroupId(appModel.groupId)
       .setArtifactId(appModel.artifactId)
       .setVersion(appModel.version)
@@ -185,7 +197,11 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
       processQuarkusDependency(resolvedDependencyBuilder, modelBuilder)
     )
 
-    val targetFile = BootstrapUtils.resolveSerializedAppModelPath(destination.toNIO)
+    val targetFile = appModel.appMode match {
+      case AppMode.App => BootstrapUtils.resolveSerializedAppModelPath(destination.toNIO)
+      case AppMode.Test => BootstrapUtils.getSerializedTestAppModelPath(destination.toNIO)
+    }
+
     ApplicationModelSerializer.serialize(
       modelBuilder.build(),
       targetFile
@@ -193,6 +209,17 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
 
     os.Path(targetFile)
 
+  }
+
+  def artifactSources(moduleData: ModuleData): ArtifactSources = {
+    val sources = SourceDir.of(moduleData.sources.dir.toNIO, moduleData.sources.destDir.toNIO)
+    val resources = SourceDir.of(moduleData.resources.dir.toNIO, moduleData.resources.destDir.toNIO)
+    moduleData.classifier match {
+      case ModuleClassifier.Main =>
+        ArtifactSources.main(sources, resources)
+      case ModuleClassifier.Tests =>
+        ArtifactSources.test(sources, resources)
+    }
   }
 
   // utility function adapted from io.quarkus.gradle.tooling.GradleApplicationModelBuilder
