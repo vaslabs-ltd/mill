@@ -10,6 +10,8 @@ import upickle.default.ReadWriter.join
 
 import java.io.File
 import java.net.URLClassLoader
+import java.util.Properties
+import scala.util.Using
 
 @mill.api.experimental
 trait QuarkusModule extends JavaModule { outer =>
@@ -328,7 +330,31 @@ trait QuarkusModule extends JavaModule { outer =>
       Task.dest
     )
     PathRef(modelPath)
+  }
 
+  /**
+   * The properties for building a native Quarkus App.
+   * For more options see [[https://quarkus.io/guides/building-native-image#configuration-reference]]
+   */
+  def quarkusNativeBuildProperties: T[Map[String, String]] = Task {
+    Map(
+      "quarkus.native.enabled" -> "true",
+      "quarkus.native.graalvm-home" -> javaHome().get.path.toString,
+      "quarkus.native.java-home" -> javaHome().get.path.toString
+    )
+  }
+
+  def quarkusNativeBuildPropertiesFile: T[PathRef] = Task {
+    val file = Task.dest / "quarkus-build.properties"
+    val properties = new Properties()
+    quarkusNativeBuildProperties().foreach {
+      (key, value) => properties.put(key, value)
+    }
+    Using(os.write.outputStream(file))(out =>
+      properties.store(out, "Generated build properties by Mill")
+    )
+
+    PathRef(file)
   }
 
   /**
@@ -341,7 +367,8 @@ trait QuarkusModule extends JavaModule { outer =>
     quarkusApplicationModelWorker().quarkusBootstrapApplication(
       quarkusSerializedAppModel().path,
       dest,
-      jar().path
+      jar().path,
+      quarkusNativeBuildPropertiesFile().path
     )
   }
 
@@ -401,8 +428,6 @@ trait QuarkusModule extends JavaModule { outer =>
       }
     }
   }
-
-
 
   trait QuarkusJunit extends QuarkusTests {
 

@@ -54,10 +54,14 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
   def quarkusBootstrapApplication(
       applicationModelFile: os.Path,
       destRunJar: os.Path,
-      jar: os.Path
+      jar: os.Path,
+      buildProperties: os.Path
   ): ApplicationModelWorker.QuarkusApp = {
     val applicationModel = ApplicationModelSerializer
       .deserialize(applicationModelFile.toNIO)
+
+    val properties = new Properties()
+    Using(os.read.inputStream(buildProperties))(properties.load)
 
     val quarkusBootstrap = QuarkusBootstrap.builder()
       .setExistingModel(applicationModel)
@@ -65,9 +69,9 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
         ResolvedDependencyBuilder.newInstance()
           .setResolvedPath(jar.toNIO)
       )
+      .setBuildSystemProperties(properties)
       .setTargetDirectory(destRunJar.toNIO)
       .setLocalProjectDiscovery(false)
-      .setIsolateDeployment(true)
       .setBaseClassLoader(getClass.getClassLoader)
       .build()
 
@@ -76,7 +80,9 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
     val app = augmentAction.createProductionApplication()
 
     val quarkusApp = ApplicationModelWorker.QuarkusApp(
-      destRunJar / "quarkus-app", os.Path(app.getJar.getPath), Option(app.getNativeResult).map(os.Path(_))
+      destRunJar / "quarkus-app",
+      os.Path(app.getJar.getPath),
+      Option(app.getNativeResult).map(os.Path(_))
     )
     quarkusApp
   }
@@ -135,21 +141,7 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
       builder
     }
 
-    // TODO distinct should not be needed, caller needs fixing
-    val dependencies = appModel.dependencies.distinct.map(toResolvedDependencyBuilder)
-
-    val workspaceModuleBuilder = WorkspaceModule.builder()
-      .setModuleDir(appModel.projectRoot.toNIO)
-      .setModuleId(
-        WorkspaceModuleId.of(appModel.groupId, appModel.artifactId, appModel.version)
-      ).setBuildDir(appModel.buildDir.toNIO)
-      .setBuildFile(appModel.buildFile.toNIO)
-
-    appModel.moduleData.foreach(md =>
-      workspaceModuleBuilder.addArtifactSources(
-        artifactSources(md)
-      )
-    )
+    val dependencies = appModel.dependencies.map(toResolvedDependencyBuilder)
 
     val workspaceModuleBuilder = WorkspaceModule.builder()
       .setModuleDir(appModel.projectRoot.toNIO)

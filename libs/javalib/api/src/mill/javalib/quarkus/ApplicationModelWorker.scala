@@ -10,7 +10,8 @@ trait ApplicationModelWorker extends AutoCloseable {
   def quarkusBootstrapApplication(
       applicationModelFile: os.Path,
       destRunJar: os.Path,
-      jar: os.Path
+      jar: os.Path,
+      buildProperties: os.Path
   ): ApplicationModelWorker.QuarkusApp
 
   def quarkusGenerateApplicationModel(
@@ -76,7 +77,8 @@ object ApplicationModelWorker {
     case Tests
   }
 
-  case class QuarkusApp(buildOutput: PathRef, runJar: PathRef, nativePath: Option[PathRef]) derives ReadWriter
+  case class QuarkusApp(buildOutput: PathRef, runJar: PathRef, nativePath: Option[PathRef])
+      derives ReadWriter
 
   object QuarkusApp {
 
