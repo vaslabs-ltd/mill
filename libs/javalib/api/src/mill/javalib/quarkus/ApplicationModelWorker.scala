@@ -75,6 +75,7 @@ object ApplicationModelWorker {
   enum ModuleClassifier derives ReadWriter {
     case Main
     case Tests
+    case NativeTests
   }
 
   case class QuarkusApp(buildOutput: PathRef, runJar: PathRef, nativePath: Option[PathRef])

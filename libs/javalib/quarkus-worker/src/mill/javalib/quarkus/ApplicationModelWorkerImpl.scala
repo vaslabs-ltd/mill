@@ -10,6 +10,7 @@ import io.quarkus.bootstrap.model.{
 import io.quarkus.bootstrap.util.BootstrapUtils
 import io.quarkus.bootstrap.workspace.{
   ArtifactSources,
+  DefaultArtifactSources,
   SourceDir,
   WorkspaceModule,
   WorkspaceModuleId
@@ -80,7 +81,7 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
     val app = augmentAction.createProductionApplication()
 
     val quarkusApp = ApplicationModelWorker.QuarkusApp(
-      destRunJar / "quarkus-app",
+      destRunJar,
       os.Path(app.getJar.getPath),
       Option(app.getNativeResult).map(os.Path(_))
     )
@@ -231,6 +232,12 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
         ArtifactSources.main(sources, resources)
       case ModuleClassifier.Tests =>
         ArtifactSources.test(sources, resources)
+      case ModuleClassifier.NativeTests =>
+        new DefaultArtifactSources(
+          "native-tests",
+          java.util.List.of(sources),
+          java.util.List.of(resources)
+        );
     }
   }
 

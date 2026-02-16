@@ -24,8 +24,10 @@ object `package` extends QuarkusModule, MavenModule {
       mvn"io.rest-assured:rest-assured"
     )
   }
-  object test extends QuarkusTestBase {
-    object nativeTest extends QuarkusNativeTest {}
+  object test extends QuarkusTestBase
+
+  object `native-test` extends QuarkusTestBase, QuarkusNativeTest {
+    def moduleDeps = super.moduleDeps ++ Seq(test)
   }
 
 }
@@ -35,7 +37,7 @@ object `package` extends QuarkusModule, MavenModule {
 /** Usage
 
 > ./mill show quarkusRunJar
-...out/quarkusRunJar.dest/quarkus/quarkus-run.jar/quarkus-app/quarkus-run.jar...
+...out/quarkusApp.dest/quarkus/quarkus-app/quarkus-run.jar...
 
 > ./mill show runBackground
 
@@ -50,6 +52,19 @@ Hello from Quarkus REST
   "results": [
     {
       "fullyQualifiedName": "org.acme.GreetingResourceTest",
+      "selector": "testHelloEndpoint()",
+      "duration": ...,
+      "status": "Success"
+    }
+  ]
+}
+
+> ./mill show native-test
+{
+  "msg": "",
+  "results": [
+    {
+      "fullyQualifiedName": "org.acme.GreetingResourceIT",
       "selector": "testHelloEndpoint()",
       "duration": ...,
       "status": "Success"
