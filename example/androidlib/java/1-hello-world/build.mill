@@ -193,6 +193,14 @@ object app extends AndroidAppModule {
 
 */
 
+// To run a specific method: (Notice the use of single quotes to avoid shell interpretation of the `#` character)
+/** Usage
+
+> ./mill show app.it -e class 'com.helloworld.app.ExampleInstrumentedTest#useAppContext'
+..."status": "Success"...
+
+*/
+
 // You can combine multiple `-e` options as needed.
 /** Usage
 
