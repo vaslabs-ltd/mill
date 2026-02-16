@@ -109,7 +109,7 @@ class ExampleTester(
 
     val expectedSnippets = commandBlockLines.tail
     val (commandHead, comment) = commandBlockLines.head match {
-      case s"$before#$after" => (before.trim, Some(after.trim))
+      case s"$before #$after" => (before.trim, Some(after.trim))
       case string => (string, None)
     }
 

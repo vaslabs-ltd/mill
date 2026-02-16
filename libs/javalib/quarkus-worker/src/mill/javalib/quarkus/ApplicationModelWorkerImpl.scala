@@ -151,6 +151,19 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
       )
     )
 
+    val workspaceModuleBuilder = WorkspaceModule.builder()
+      .setModuleDir(appModel.projectRoot.toNIO)
+      .setModuleId(
+        WorkspaceModuleId.of(appModel.groupId, appModel.artifactId, appModel.version)
+      ).setBuildDir(appModel.buildDir.toNIO)
+      .setBuildFile(appModel.buildFile.toNIO)
+
+    appModel.moduleData.foreach(md =>
+      workspaceModuleBuilder.addArtifactSources(
+        artifactSources(md)
+      )
+    )
+
     val resolvedDependencyBuilder = ResolvedDependencyBuilder.newInstance().setWorkspaceModule(
       workspaceModuleBuilder
         .build()
