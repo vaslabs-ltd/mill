@@ -459,6 +459,10 @@ trait QuarkusModule extends JavaModule { outer =>
     )
   }
 
+  def quarkusRunJarOpt: T[Option[PathRef]] = Task {
+    quarkusApp().runJar
+  }
+
   /**
    * The quarkus-run.jar which is a standalone fast jar
    * created by QuarkusBootstrap using the generated ApplicationModel
@@ -466,7 +470,9 @@ trait QuarkusModule extends JavaModule { outer =>
    * @return the path of the quarkus-run.jar
    */
   def quarkusRunJar: T[PathRef] = Task {
-    quarkusApp().runJar
+    quarkusRunJarOpt().getOrElse(
+      Task.fail("No quarkus-run.jar was produced")
+    )
   }
 
   trait QuarkusTests extends QuarkusModule, JavaTests { qt =>
