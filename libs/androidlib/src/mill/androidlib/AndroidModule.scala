@@ -945,19 +945,26 @@ trait AndroidModule extends JavaModule { outer =>
     }
 
     /**
-     * Generates a Java properties file required when [[androidIncludeAndroidResources]] is true,
-     * containing necessary information for the Android resource processing in unit tests.
-     *
-     * Properties and expected name on the classpath are defined at
-     * [[https://developer.android.com/reference/tools/gradle-api/8.3/null/com/android/build/api/dsl/UnitTestOptions#getIsIncludeAndroidResources()]]
+     * The properties of the generated test configuration file for Android unit tests.
      */
-    def androidGeneratedTestConfigSources: T[Seq[PathRef]] = Task {
-      val properties: Map[String, String] = Map(
+    def androidTestConfigProperties: T[Map[String, String]] = Task {
+      Map(
         "android_custom_package" -> outer.androidNamespace,
         "android_merged_manifest" -> outer.androidMergedManifest().path.toString,
         "android_resource_apk" -> (outer.androidLinkedResources().path / "apk" / "res.apk").toString,
         "android_merged_assets" -> outer.androidTransitiveMergedAssets().path.toString
       )
+    }
+
+    /**
+     * Generates a Java properties file required when [[androidIncludeAndroidResources]] is true,
+     * containing necessary information for the Android resource processing in unit tests.
+     *
+     * Expected name on the classpath and properties are defined at
+     * [[https://developer.android.com/reference/tools/gradle-api/8.3/null/com/android/build/api/dsl/UnitTestOptions#getIsIncludeAndroidResources()]]
+     */
+    def androidGeneratedTestConfigSources: T[Seq[PathRef]] = Task {
+      val properties = androidTestConfigProperties()
 
       val content = properties.map { case (key, value) =>
         s"$key=$value"
