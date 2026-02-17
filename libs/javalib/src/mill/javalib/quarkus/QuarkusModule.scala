@@ -71,9 +71,11 @@ trait QuarkusModule extends JavaModule { outer =>
       ))
   }
 
-  override def bomMvnDeps: Task.Simple[Seq[Dep]] = super.bomMvnDeps() ++ Seq(
-    mvn"io.quarkus.platform:quarkus-bom:${quarkusPlatformVersion()}"
-  )
+  override def bomMvnDeps: T[Seq[Dep]] = Task {
+    super.bomMvnDeps() ++ Seq(
+      mvn"io.quarkus.platform:quarkus-bom:${quarkusPlatformVersion()}"
+    )
+  }
 
   /**
    * Dependencies for the Quarkus Bootstrap process
@@ -363,33 +365,64 @@ trait QuarkusModule extends JavaModule { outer =>
   }
 
   /**
+   * The properties for building a jar-based Quarkus App.
+   */
+  def quarkusJarBuildProperties: T[Map[String, String]] = Task {
+    Map(
+      "quarkus.native.enabled" -> "false"
+    )
+  }
+
+  /**
+   * Java home is required for native builds as we need to point to a GraalVM distribution.
+   * This task will fail if javaHome is not configured.
+   */
+  private def nativeJavaHome: T[PathRef] = Task {
+    javaHome() match {
+      case Some(p) => p
+      case None =>
+        Task.fail(
+          "javaHome is not configured but required for native builds.\n" +
+            "Set `jvmVersion` (or override `javaHome`) to point to a GraalVM distribution."
+        )
+    }
+  }
+
+  /**
    * The properties for building a native Quarkus App.
    * For more options see [[https://quarkus.io/guides/building-native-image#configuration-reference]]
    */
   def quarkusNativeBuildProperties: T[Map[String, String]] = Task {
+    val home = nativeJavaHome().path.toString
     Map(
+      "quarkus.package.jar.enabled" -> "false",
       "quarkus.native.enabled" -> "true",
-      "quarkus.native.graalvm-home" -> javaHome().get.path.toString,
-      "quarkus.native.java-home" -> javaHome().get.path.toString
+      "quarkus.native.graalvm-home" -> home,
+      "quarkus.native.java-home" -> home
     )
   }
 
-  def quarkusNativeBuildPropertiesFile: T[PathRef] = Task {
+  def writeBuildPropertiesFile(native: Boolean): Task[PathRef] = Task.Anon {
     val file = Task.dest / "quarkus-build.properties"
+    val props = if (native) quarkusNativeBuildProperties() else quarkusJarBuildProperties()
     val properties = new Properties()
-    quarkusNativeBuildProperties().foreach {
-      (key, value) => properties.put(key, value)
-    }
+    props.foreach { case (key, value) => properties.put(key, value) }
     Using(os.write.outputStream(file))(out =>
       properties.store(out, "Generated build properties by Mill")
     )
-
     PathRef(file)
   }
 
+  def quarkusJarBuildPropertiesFile: T[PathRef] = Task {
+    writeBuildPropertiesFile(native = false)()
+  }
+
+  def quarkusNativeBuildPropertiesFile: T[PathRef] = Task {
+    writeBuildPropertiesFile(native = true)()
+  }
+
   /**
-   * A quarkus app is a build with a quarkus run jar
-   * and a native path.
+   * A quarkus app built only with the jar packaging
    */
   def quarkusApp: T[ApplicationModelWorker.QuarkusApp] = Task {
     val dest = Task.dest / "quarkus"
@@ -398,7 +431,31 @@ trait QuarkusModule extends JavaModule { outer =>
       quarkusSerializedAppModel().path,
       dest,
       jar().path,
+      quarkusJarBuildPropertiesFile().path
+    )
+  }
+
+  /**
+   * A native quarkus app built with the native image packaging
+   */
+  def quarkusNativeApp: T[ApplicationModelWorker.QuarkusApp] = Task {
+    val dest = Task.dest / "quarkus-native"
+    os.makeDir.all(dest)
+    quarkusApplicationModelWorker().quarkusBootstrapApplication(
+      quarkusSerializedAppModel().path,
+      dest,
+      jar().path,
       quarkusNativeBuildPropertiesFile().path
+    )
+  }
+
+  def quarkusNativePathOpt: T[Option[PathRef]] = Task {
+    quarkusNativeApp().nativePath
+  }
+
+  def quarkusNativePath: T[PathRef] = Task {
+    quarkusNativePathOpt().getOrElse(
+      Task.fail("No native image output was produced")
     )
   }
 
@@ -456,8 +513,8 @@ trait QuarkusModule extends JavaModule { outer =>
 
     override def forkArgs: T[Seq[String]] = Task {
       Seq(
-        s"-Dbuild.output.directory=${outer.quarkusApp().buildOutput.path}",
-        s"-Dnative.image.path=${outer.quarkusApp().nativePath.get.path}"
+        s"-Dbuild.output.directory=${outer.quarkusNativeApp().buildOutput.path}",
+        s"-Dnative.image.path=${outer.quarkusNativePath().path}"
       ) ++ super.forkArgs()
     }
   }
