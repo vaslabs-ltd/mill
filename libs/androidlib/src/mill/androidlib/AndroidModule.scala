@@ -976,6 +976,8 @@ trait AndroidModule extends JavaModule { outer =>
       )
     }
 
+    def androidResources: T[Seq[PathRef]] = Task.Sources()
+
     override def bspBuildTarget: BspBuildTarget = super.bspBuildTarget.copy(
       baseDirectory = Some((moduleDir / "src/test").toNIO),
       canTest = true
