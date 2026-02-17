@@ -402,9 +402,8 @@ trait QuarkusModule extends JavaModule { outer =>
     )
   }
 
-  def writeBuildPropertiesFile(native: Boolean): Task[PathRef] = Task.Anon {
-    val file = Task.dest / "quarkus-build.properties"
-    val props = if (native) quarkusNativeBuildProperties() else quarkusJarBuildProperties()
+  private def writeBuildPropertiesFile(destDir: os.Path, props: Map[String, String]): PathRef = {
+    val file = destDir / "quarkus-build.properties"
     val properties = new Properties()
     props.foreach { case (key, value) => properties.put(key, value) }
     Using(os.write.outputStream(file))(out =>
@@ -414,11 +413,11 @@ trait QuarkusModule extends JavaModule { outer =>
   }
 
   def quarkusJarBuildPropertiesFile: T[PathRef] = Task {
-    writeBuildPropertiesFile(native = false)()
+    writeBuildPropertiesFile(Task.dest, quarkusJarBuildProperties())
   }
 
   def quarkusNativeBuildPropertiesFile: T[PathRef] = Task {
-    writeBuildPropertiesFile(native = true)()
+    writeBuildPropertiesFile(Task.dest, quarkusNativeBuildProperties())
   }
 
   /**
