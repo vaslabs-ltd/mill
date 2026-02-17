@@ -781,7 +781,7 @@ trait AndroidModule extends JavaModule { outer =>
     val argFile = Task.dest / "to-link.txt"
     os.write.over(argFile, filesToLink.map(_.toString()).mkString("\n"))
 
-    val allAssetsDirs = androidTransitiveAssets()
+    val transitiveMergedAssetsDir = androidTransitiveMergedAssets().path
 
     val javaRClassDir = Task.dest / "generatedSources/java"
     val apkDir = Task.dest / "apk"
@@ -821,14 +821,28 @@ trait AndroidModule extends JavaModule { outer =>
       "-o",
       resApkFile.toString,
       "-R",
-      "@" + argFile.toString
-    ) ++ allAssetsDirs.flatMap(a => Seq("-A", a.path.toString()))
+      "@" + argFile.toString,
+      "-A",
+      transitiveMergedAssetsDir.toString
+    )
 
     Task.log.info((aapt2Link ++ linkArgs).mkString(" "))
 
     os.call(aapt2Link ++ linkArgs)
 
     PathRef(Task.dest)
+  }
+
+  /**
+   * Merges all the transitive assets into a single directory.
+   */
+  def androidTransitiveMergedAssets: T[PathRef] = Task {
+    val assetsDirs = androidTransitiveAssets()
+    val dest = Task.dest
+    for (assetsDir <- assetsDirs) {
+      os.copy(assetsDir.path, dest, mergeFolders = true, replaceExisting = true)
+    }
+    PathRef(dest)
   }
 
   /**
@@ -930,11 +944,37 @@ trait AndroidModule extends JavaModule { outer =>
         Task { super.runClasspath() }
     }
 
-    private def runClasspathWithAndroidResources: T[Seq[PathRef]] = Task {
-      super.runClasspath() ++ Seq(outer.androidProcessedResources())
+    /**
+     * Generates a Java properties file required when [[androidIncludeAndroidResources]] is true,
+     * containing necessary information for the Android resource processing in unit tests.
+     *
+     * Properties and expected name on the classpath are defined at
+     * [[https://developer.android.com/reference/tools/gradle-api/8.3/null/com/android/build/api/dsl/UnitTestOptions#getIsIncludeAndroidResources()]]
+     */
+    def androidGeneratedTestConfigSources: T[Seq[PathRef]] = Task {
+      val properties: Map[String, String] = Map(
+        "android_custom_package" -> outer.androidNamespace,
+        "android_merged_manifest" -> outer.androidMergedManifest().path.toString,
+        "android_resource_apk" -> (outer.androidLinkedResources().path / "apk" / "res.apk").toString,
+        "android_merged_assets" -> outer.androidTransitiveMergedAssets().path.toString
+      )
+
+      val content = properties.map { case (key, value) =>
+        s"$key=$value"
+      }.mkString("\n")
+
+      val configFile = Task.dest / "com" / "android" / "tools" / "test_config.properties"
+
+      os.write(configFile, content, createFolders = true)
+
+      Seq(PathRef(Task.dest))
     }
 
-    def androidResources: T[Seq[PathRef]] = Task.Sources()
+    private def runClasspathWithAndroidResources: T[Seq[PathRef]] = Task {
+      super.runClasspath() ++ androidGeneratedTestConfigSources() ++ Seq(
+        outer.androidProcessedResources()
+      )
+    }
 
     override def bspBuildTarget: BspBuildTarget = super.bspBuildTarget.copy(
       baseDirectory = Some((moduleDir / "src/test").toNIO),
