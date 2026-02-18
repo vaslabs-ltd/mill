@@ -82,7 +82,7 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
 
     val quarkusApp = ApplicationModelWorker.QuarkusApp(
       destRunJar,
-      os.Path(app.getJar.getPath),
+      Option(app.getJar).map(j => os.Path(j.getPath)),
       Option(app.getNativeResult).map(os.Path(_))
     )
     quarkusApp

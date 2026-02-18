@@ -78,13 +78,17 @@ object ApplicationModelWorker {
     case NativeTests
   }
 
-  case class QuarkusApp(buildOutput: PathRef, runJar: PathRef, nativePath: Option[PathRef])
+  case class QuarkusApp(buildOutput: PathRef, runJar: Option[PathRef], nativePath: Option[PathRef])
       derives ReadWriter
 
   object QuarkusApp {
 
-    def apply(buildOutput: os.Path, runJar: os.Path, nativePath: Option[os.Path]): QuarkusApp =
-      new QuarkusApp(PathRef(buildOutput), PathRef(runJar), nativePath.map(PathRef(_)))
+    def apply(
+        buildOutput: os.Path,
+        runJar: Option[os.Path],
+        nativePath: Option[os.Path]
+    ): QuarkusApp =
+      new QuarkusApp(PathRef(buildOutput), runJar.map(PathRef(_)), nativePath.map(PathRef(_)))
 
   }
 }
