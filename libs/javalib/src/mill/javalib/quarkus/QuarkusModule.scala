@@ -474,7 +474,7 @@ trait QuarkusModule extends JavaModule { outer =>
     )
   }
 
-  trait QuarkusTests extends QuarkusModule, JavaTests { qt =>
+  trait QuarkusTests extends QuarkusModule, JavaTests {
 
     override def quarkusPlatformVersion: T[String] = outer.quarkusPlatformVersion()
     override def artifactId: T[String] = outer.artifactId()
