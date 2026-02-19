@@ -17,7 +17,7 @@ import scala.xml.*
 
 trait AndroidModule extends JavaModule { outer =>
 
-  override private[mill] lazy val bspExt: ModuleRef[BspAndroidModule] = {
+  override private[mill] lazy val bspExt = {
     ModuleRef(new BspAndroidModule.Wrap(this) {}.internalBspJavaModule)
   }
 
@@ -394,7 +394,21 @@ trait AndroidModule extends JavaModule { outer =>
    * @return
    */
   def androidResolvedMvnDeps: T[Seq[PathRef]] = Task {
-    transformedAndroidDeps(Task.Anon(resolvedMvnDeps()))()
+    val transformedAars = androidUnpackedAarMvnDeps().flatMap(_.classesJar)
+    androidJarMvnDeps() ++ transformedAars
+  }
+
+  def androidAarMvnDeps: T[Seq[PathRef]] = Task {
+    resolvedMvnDeps().filter(_.path.ext == "aar")
+  }
+
+  def androidJarMvnDeps: T[Seq[PathRef]] = Task {
+    resolvedMvnDeps().filter(_.path.ext == "jar")
+  }
+
+  def androidUnpackedAarMvnDeps: T[Seq[UnpackedDep]] = Task {
+    val transformDest = Task.dest / "transform"
+    extractAarFiles(androidAarMvnDeps().map(_.path), resolvedMvnJarSources().map(_.path), transformDest)
   }
 
   def androidResolvedCompileMvnDeps: T[Seq[PathRef]] = Task {
@@ -486,6 +500,11 @@ trait AndroidModule extends JavaModule { outer =>
         PathRef(targetClassesJar)
       })
       val sourcesJar = sources.find(s => s.baseName == s"${name}-sources" && s.ext == "jar").map(PathRef(_))
+      // Bring the source files to the same location as classes.jar,
+      // so that IDEs can pick them up as sources for the library.
+      sourcesJar.foreach { srcJar =>
+        os.copy(srcJar.path, taskDest / srcJar.path.last)
+      }
       val proguardRules = pathOption(extractDir / "proguard.txt")
       val androidResources = pathOption(extractDir / "res")
       val assets = pathOption(extractDir / "assets")
