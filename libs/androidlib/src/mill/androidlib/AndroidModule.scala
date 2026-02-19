@@ -499,12 +499,14 @@ trait AndroidModule extends JavaModule { outer =>
         os.move(pr.path, targetClassesJar)
         PathRef(targetClassesJar)
       })
-      val sourcesJar = sources.find(s => s.baseName == s"${name}-sources" && s.ext == "jar").map(PathRef(_))
       // Bring the source files to the same location as classes.jar,
       // so that IDEs can pick them up as sources for the library.
-      sourcesJar.foreach { srcJar =>
-        os.copy(srcJar.path, taskDest / srcJar.path.last)
-      }
+      val targetSourcesJar = s"${name}-sources.jar"
+      val sourcesJar = sources.find(s => s.last == targetSourcesJar).map(srcJar => {
+        val dest = extractDir / targetSourcesJar
+        os.copy(srcJar, dest)
+        PathRef(dest)
+      })
       val proguardRules = pathOption(extractDir / "proguard.txt")
       val androidResources = pathOption(extractDir / "res")
       val assets = pathOption(extractDir / "assets")
