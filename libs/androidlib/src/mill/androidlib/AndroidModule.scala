@@ -408,7 +408,7 @@ trait AndroidModule extends JavaModule { outer =>
 
   def androidUnpackedAarMvnDeps: T[Seq[UnpackedDep]] = Task {
     val transformDest = Task.dest / "transform"
-    extractAarFiles(androidAarMvnDeps().map(_.path), resolvedMvnJarSources().map(_.path), transformDest)
+    extractAarFiles(androidAarMvnDeps().map(_.path), transformDest, resolvedMvnJarSources().map(_.path))
   }
 
   def androidResolvedCompileMvnDeps: T[Seq[PathRef]] = Task {
@@ -434,7 +434,7 @@ trait AndroidModule extends JavaModule { outer =>
         .filter(_.ext == "aar")
         .distinct
 
-      extractAarFiles(aarFiles, resolvedMvnJarSources().map(_.path), transformDest)
+      extractAarFiles(aarFiles, transformDest)
     }
 
   /**
@@ -466,7 +466,7 @@ trait AndroidModule extends JavaModule { outer =>
       .distinct
 
     // TODO do it in some shared location, otherwise each module is doing the same, having its own copy for nothing
-    extractAarFiles(aarFiles, resolvedMvnJarSources().map(_.path), Task.dest)
+    extractAarFiles(aarFiles, Task.dest)
   }
 
   def androidUnpackRunArchives: T[Seq[UnpackedDep]] = Task {
@@ -476,10 +476,10 @@ trait AndroidModule extends JavaModule { outer =>
       .distinct
 
     // TODO do it in some shared location, otherwise each module is doing the same, having its own copy for nothing
-    extractAarFiles(aarFiles, resolvedMvnJarSources().map(_.path), Task.dest)
+    extractAarFiles(aarFiles, Task.dest)
   }
 
-  final def extractAarFiles(aarFiles: Seq[os.Path], sources: Seq[os.Path], taskDest: os.Path): Seq[UnpackedDep] = {
+  final def extractAarFiles(aarFiles: Seq[os.Path], taskDest: os.Path, sources: Seq[os.Path] = Seq.empty): Seq[UnpackedDep] = {
     aarFiles.map(aarFile => {
       val extractDir = taskDest / aarFile.baseName
       os.unzip(aarFile, extractDir)
