@@ -1,22 +1,19 @@
 package rest;
 
-import io.quarkus.test.junit.QuarkusTest;
-import io.restassured.response.Response;
-import org.junit.jupiter.api.Test;
-
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.response.Response;
+import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 public class TodosTest {
 
   @Test
   public void testTodoPage() {
-    Response response = given()
-      .when().get("/todos")
-      .then()
-      .extract().response();
+    Response response = given().when().get("/todos").then().extract().response();
 
     assertEquals(200, response.statusCode());
 

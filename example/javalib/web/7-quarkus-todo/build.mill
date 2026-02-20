@@ -22,7 +22,7 @@ object `package` extends QuarkusModule, MavenModule {
 
   trait QuarkusTestBase extends MavenTests, QuarkusJunit {
     def mvnDeps = Seq(
-      mvn"io.rest-assured:rest-assured",
+      mvn"io.rest-assured:rest-assured"
     )
   }
 
