@@ -30,6 +30,9 @@ jobs:
           - name: androidtodo
             millargs: example.thirdparty.androidtodo.packaged.daemon
             setup-android: true
+          - name: android-endless-tunnel
+            millargs: example.thirdparty.android-endless-tunnel.packaged.daemon
+            setup-android: true
     name: Android / ${{ matrix.name }}
     uses: ./.github/workflows/post-build-selective.yml
     with:
