@@ -288,10 +288,16 @@ trait QuarkusModule extends JavaModule { outer =>
   }
 
   /**
-   * Dummy placeholder for Quarkus application model resources
+   * The resources to include in the Quarkus Application Model
    */
   def quarkusBuildResources: T[PathRef] = Task {
     val dir = Task.dest
+
+    resources().foreach { res =>
+      if (os.exists(res.path)) {
+        os.list(res.path).foreach(p => os.copy.into(p, dir))
+      }
+    }
     PathRef(dir)
   }
 
