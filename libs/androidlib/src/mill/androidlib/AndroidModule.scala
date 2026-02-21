@@ -408,7 +408,11 @@ trait AndroidModule extends JavaModule { outer =>
 
   def androidUnpackedAarMvnDeps: T[Seq[UnpackedDep]] = Task {
     val transformDest = Task.dest / "transform"
-    extractAarFiles(androidAarMvnDeps().map(_.path), transformDest, resolvedMvnJarSources().map(_.path))
+    extractAarFiles(
+      androidAarMvnDeps().map(_.path),
+      transformDest,
+      resolvedMvnJarSources().map(_.path)
+    )
   }
 
   def androidResolvedCompileMvnDeps: T[Seq[PathRef]] = Task {
@@ -479,7 +483,11 @@ trait AndroidModule extends JavaModule { outer =>
     extractAarFiles(aarFiles, Task.dest)
   }
 
-  final def extractAarFiles(aarFiles: Seq[os.Path], taskDest: os.Path, sources: Seq[os.Path] = Seq.empty): Seq[UnpackedDep] = {
+  final def extractAarFiles(
+      aarFiles: Seq[os.Path],
+      taskDest: os.Path,
+      sources: Seq[os.Path] = Seq.empty
+  ): Seq[UnpackedDep] = {
     aarFiles.map(aarFile => {
       val extractDir = taskDest / aarFile.baseName
       os.unzip(aarFile, extractDir)
