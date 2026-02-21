@@ -2,8 +2,8 @@ name: Scheduled Android Tests
 
 on:
   schedule:
-    # 03:00 every Sunday
-    - cron: '0 3 * * 0'
+    # Run every Saturday at 12:00 PM (UTC)
+    - cron: '0 12 * * 6'
   workflow_dispatch:
 
 concurrency:
