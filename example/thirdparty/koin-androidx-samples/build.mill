@@ -70,7 +70,7 @@ object examples extends mill.api.Module {
   }
 }
 
-// Run the Roboelectric tests on the JVM
+// Run the Robolectric tests on the JVM
 /** Usage
 
 > ./mill examples.androidx-samples.androidApk
@@ -103,7 +103,7 @@ object examples extends mill.api.Module {
 */
 
 // Create an AVD, start the emulator, install the APK and run the app on the emulator
-/** Usage
+/**
 
 > ./mill show examples.androidx-samples.createAndroidVirtualDevice
 ...DeviceId: medium_phone...

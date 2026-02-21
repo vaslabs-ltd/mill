@@ -2,9 +2,9 @@
 :page-aliases: koin_androidx_examples.adoc
 
 
-This page provides an example of how https://github.com/InsertKoinIO/koin/tree/main/examples/androidx-samples[Koin AndroidX Samples] can be built with Mill.
+This page provides an example of how https://github.com/InsertKoinIO/koin/tree/main/examples/androidx-samples[Koin AndroidX Samples] that utilize Koin for dependency injection can be built using Mill.
 
-This example includes Roboelectric tests which are configured to run on the JVM and not on an Android device, which is a common setup for Android projects.
+This example also showcases the support for Robolectric tests which are configured to run on the JVM and not on an Android device, allowing for faster test execution and easier debugging.
 
 
 include::partial$example/thirdparty/koin-androidx-samples.adoc[]
