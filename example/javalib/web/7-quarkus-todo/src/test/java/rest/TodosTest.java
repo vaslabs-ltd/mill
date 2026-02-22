@@ -25,9 +25,10 @@ public class TodosTest {
 
   @Test
   public void testAddTodo() {
+    String targetTask = "Migrate to Mill";
     Response response = given()
         .contentType("application/x-www-form-urlencoded")
-        .formParam("task", "Buy milk")
+        .formParam("task", targetTask)
         .when()
         .post("/todos")
         .then()
@@ -37,13 +38,14 @@ public class TodosTest {
     assertEquals(200, response.statusCode());
 
     String body = response.asString();
-    assertTrue(body.contains("Buy milk"), "The new task should be present in the HTML");
+    assertTrue(
+        body.contains(targetTask), "The new task should be present in the POST response body");
 
     String newResponseBody =
         given().when().get("/todos").then().extract().response().asString();
 
     assertTrue(
-        newResponseBody.contains("Buy milk"),
+        newResponseBody.contains(targetTask),
         "The new task should be present in the HTML after adding");
   }
 }
