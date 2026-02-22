@@ -1,9 +1,10 @@
 package rest;
 
-import io.quarkus.runtime.annotations.RegisterForReflection;
+import io.quarkus.hibernate.orm.panache.PanacheEntity;
+import jakarta.persistence.Entity;
 
-@RegisterForReflection
-public class Todo {
+@Entity
+public class Todo extends PanacheEntity {
   public String task;
   public boolean completed;
 

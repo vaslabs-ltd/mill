@@ -17,7 +17,9 @@ object `package` extends QuarkusModule, MavenModule {
     mvn"io.quarkus:quarkus-arc",
     mvn"io.quarkus:quarkus-rest",
     mvn"io.quarkus:quarkus-qute",
-    mvn"io.quarkus:quarkus-rest-qute"
+    mvn"io.quarkus:quarkus-rest-qute",
+    mvn"io.quarkus:quarkus-jdbc-h2",
+    mvn"io.quarkus:quarkus-hibernate-orm-panache"
   )
 
   trait QuarkusTestBase extends MavenTests, QuarkusJunit {

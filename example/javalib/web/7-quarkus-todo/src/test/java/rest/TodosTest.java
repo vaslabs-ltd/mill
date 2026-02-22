@@ -22,4 +22,28 @@ public class TodosTest {
     String body = response.asString();
     assertTrue(body.contains("<h1>My Todo List</h1>"), "The header should be present in the HTML");
   }
+
+  @Test
+  public void testAddTodo() {
+    Response response = given()
+        .contentType("application/x-www-form-urlencoded")
+        .formParam("task", "Buy milk")
+        .when()
+        .post("/todos")
+        .then()
+        .extract()
+        .response();
+
+    assertEquals(200, response.statusCode());
+
+    String body = response.asString();
+    assertTrue(body.contains("Buy milk"), "The new task should be present in the HTML");
+
+    String newResponseBody =
+        given().when().get("/todos").then().extract().response().asString();
+
+    assertTrue(
+        newResponseBody.contains("Buy milk"),
+        "The new task should be present in the HTML after adding");
+  }
 }

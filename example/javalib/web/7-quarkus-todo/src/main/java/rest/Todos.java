@@ -2,15 +2,13 @@ package rest;
 
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 @Path("/todos")
 public class Todos {
-
-  private static final List<Todo> list = new CopyOnWriteArrayList<>();
 
   @CheckedTemplate
   static class Templates {
@@ -20,13 +18,15 @@ public class Todos {
   @GET
   @Produces(MediaType.TEXT_HTML)
   public TemplateInstance index() {
-    return Templates.index(list);
+    return Templates.index(Todo.listAll());
   }
 
   @POST
+  @Transactional
   @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
   public TemplateInstance add(@FormParam("task") String task) {
-    list.add(new Todo(task, false));
+    var todo = new Todo(task, false);
+    todo.persist();
     return index();
   }
 }
