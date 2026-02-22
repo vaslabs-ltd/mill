@@ -1,13 +1,11 @@
 package rest;
 
-// Server-side templating engine.
-// See: https://quarkus.io/guides/qute
+// Quarkus libraries and frameworks used:
+// Qute: Server-side templating engine. (https://quarkus.io/guides/qute)
+// Rest: Define REST endpoints and handle HTTP requests. (https://quarkus.io/guides/rest)
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import jakarta.transaction.Transactional;
-
-// Define REST endpoints and handle HTTP requests.
-// See: https://quarkus.io/guides/rest
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import java.util.List;
