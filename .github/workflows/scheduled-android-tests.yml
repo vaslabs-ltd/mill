@@ -15,12 +15,16 @@ env:
 
 jobs:
   build-linux:
-    uses: ./.github/workflows/pre-build.yml
-    with:
-      java-version: 21
-      os: ubuntu-latest
-      shell: bash
-
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/pre-build-setup
+        with:
+          os: ubuntu-latest
+          java-version: 21
+          shell: bash
+          prepareargs: 'example.thirdparty.{androidtodo,android-endless-tunnel}.packaged.daemon'
+      - run: ./mill -k ${{ inputs.compileargs }}
   android:
     needs: build-linux
     strategy:
