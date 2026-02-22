@@ -24,7 +24,11 @@ jobs:
           java-version: 21
           shell: bash
           prepareargs: 'example.thirdparty.{androidtodo,android-endless-tunnel}.packaged.daemon'
-      - run: ./mill -k ${{ inputs.compileargs }}
+      - uses: actions/upload-artifact@v6.0.0
+        with:
+          path: .
+          name: ubuntu-latest-artifact
+          include-hidden-files: true
   android:
     needs: build-linux
     strategy:
