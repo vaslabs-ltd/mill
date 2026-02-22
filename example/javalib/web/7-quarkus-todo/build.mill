@@ -1,3 +1,6 @@
+// This example demonstrates how to configure mill for a simple todo-mvc application using Quarkus.
+// It uses H2 for the database, Hibernate ORM with Panache for the data access layer,
+// and Qute for HTML templating.
 package build
 
 import mill.*, javalib.*
