@@ -371,12 +371,12 @@ trait QuarkusModule extends JavaModule { outer =>
   }
 
   /**
-   * Make -parameters is always present.
+   * Make -parameters always present.
    * This is required for Quarkus Qute Checked Templates and
    * improved Reflection-based dependency injection.
    */
-  override def javacOptions: T[Seq[String]] = Task {
-    super.javacOptions() ++ Seq("-parameters")
+  override def mandatoryJavacOptions: T[Seq[String]] = Task {
+    super.mandatoryJavacOptions() ++ Seq("-parameters")
   }
 
   /**
