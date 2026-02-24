@@ -101,26 +101,3 @@ object examples extends mill.api.Module {
   ]
 }
 */
-
-// Create an AVD, start the emulator, install the APK and run the app on the emulator
-/**
-
-> ./mill show examples.androidx-samples.createAndroidVirtualDevice
-...DeviceId: medium_phone...
-
-> ./mill show examples.androidx-samples.startAndroidEmulator
-
-> ./mill show examples.androidx-samples.androidInstall
-...All files should be loaded. Notifying the device...
-
-> ./mill show examples.androidx-samples.androidRun --activity org.koin.sample.sandbox.main.MainActivity
-[
-  "Starting: Intent { cmp=org.koin.sample.sandbox/.main.MainActivity }",
-  "Status: ok",
-  "LaunchState: COLD",
-  "Activity: org.koin.sample.sandbox/.main.MainActivity",
-  "TotalTime: ...",
-  "WaitTime: ...",
-  "Complete"
-]
-*/
