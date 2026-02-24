@@ -1127,7 +1127,7 @@ trait JavaModule
     resolvedMvnDeps0(sources = false)()
   }
 
-  def resolvedMvnJarSources: T[Seq[PathRef]] = Task {
+  def resolvedMvnSourceDeps: T[Seq[PathRef]] = Task {
     resolvedMvnDeps0(sources = true)()
   }
 
@@ -1137,7 +1137,7 @@ trait JavaModule
    * exact source code you are compiling and running against.
    */
   def resolvedMvnSources: T[PathRef] = Task {
-    for (jar <- resolvedMvnJarSources()) {
+    for (jar <- resolvedMvnSourceDeps()) {
       val jarName = jar.path.last.stripSuffix(".jar")
       os.unzip(jar.path, Task.dest / jarName)
     }

@@ -411,7 +411,7 @@ trait AndroidModule extends JavaModule { outer =>
     extractAarFiles(
       androidAarMvnDeps().map(_.path),
       transformDest,
-      resolvedMvnJarSources().map(_.path)
+      resolvedMvnSourceDeps().map(_.path)
     )
   }
 
