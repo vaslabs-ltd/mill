@@ -505,7 +505,17 @@ trait QuarkusModule extends JavaModule { outer =>
 
     override def forkArgs: T[Seq[String]] = Task {
       Seq(
-        s"-Dquarkus-internal-test.serialized-app-model.path=${quarkusSerializedAppModel().path}"
+        s"-Dquarkus-internal-test.serialized-app-model.path=${quarkusSerializedAppModel().path}",
+        /* Fixes:
+        1-143] WARN: Could not get access to jdk.internal.module API: this is required for Quarkus to adjust Java Modules configuration to match the various requirements of each extension. Please ensure this JVM is launched with --add-opens=java.base/java.lang.invoke=ALL-UNNAMED.
+        1-143] Feb 25, 2026 6:58:06 PM org.jboss.logmanager.JBossLoggerFinder getLogger
+        1-143] ERROR: The LogManager accessed before the "java.util.logging.manager" system property was set to "org.jboss.logmanager.LogManager". Results may be unexpected.
+        1-143] WARNING: A Java agent has been loaded dynamically (/home/styl/.cache/coursier/v1/https/repo1.maven.org/maven2/net/bytebuddy/byte-buddy-agent/1.17.8/byte-buddy-agent-1.17.8.jar)
+        1-143] WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+        1-143] WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+        1-143] WARNING: Dynamic loading of agents will be disallowed by default in a future release
+         */
+        "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED"
       )
     }
 
