@@ -505,7 +505,9 @@ trait QuarkusModule extends JavaModule { outer =>
 
     override def forkArgs: T[Seq[String]] = Task {
       Seq(
-        s"-Dquarkus-internal-test.serialized-app-model.path=${quarkusSerializedAppModel().path}"
+        s"-Dquarkus-internal-test.serialized-app-model.path=${quarkusSerializedAppModel().path}",
+        // Required for Quarkus to adjust Java Modules configuration to match the various requirements of each extension
+        "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED"
       )
     }
 
