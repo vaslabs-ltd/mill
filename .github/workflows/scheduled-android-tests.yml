@@ -17,6 +17,7 @@ jobs:
   build-linux:
     uses: ./.github/workflows/pre-build.yml
     with:
+      compileargs: 'dist.executable + core.api.test.compile + testkit.compile + libs.androidlib.compile'
       java-version: 21
       os: ubuntu-latest
       shell: bash
