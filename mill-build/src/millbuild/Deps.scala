@@ -43,10 +43,13 @@ object Deps {
       mvn"org.scala-js::scalajs-env-selenium:1.1.1".withDottyCompat(scalaVersion)
     val scalajsEnvPlaywright =
       mvn"io.github.thijsbroersen::scala-js-env-playwright:0.2.3"
+    val scalajsJsEnvs = mvn"org.scala-js::scalajs-js-envs:1.4.0".withDottyCompat(scalaVersion)
     val scalajsSbtTestAdapter =
       mvn"org.scala-js::scalajs-sbt-test-adapter:${scalaJsVersion}".withDottyCompat(scalaVersion)
     val scalajsLinker =
       mvn"org.scala-js::scalajs-linker:${scalaJsVersion}".withDottyCompat(scalaVersion)
+    val scalajsLinkerInterface =
+      mvn"org.scala-js::scalajs-linker-interface:$scalaJsVersion".withDottyCompat(scalaVersion)
     val scalajsImportMap =
       mvn"com.armanbilge::scalajs-importmap:0.1.1".withDottyCompat(scalaVersion)
   }
@@ -190,6 +193,7 @@ object Deps {
     mvn"org.scoverage::scalac-scoverage-serializer:${scoverage2Version}"
   val scalaparse = mvn"com.lihaoyi::scalaparse:${fastparse.version}"
   val scalatags = mvn"com.lihaoyi::scalatags:0.13.1".withDottyCompat(scalaVersion)
+  val scalaCliBsp = mvn"org.virtuslab.scala-cli:scala-cli-bsp:1.8.0"
   val scalaXml = mvn"org.scala-lang.modules::scala-xml:2.4.0"
   // keep in sync with doc/antora/antory.yml
   val semanticDBscala_runtime = mvn"org.scalameta:::semanticdb-scalac:4.14.7"
