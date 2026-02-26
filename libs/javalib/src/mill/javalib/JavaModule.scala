@@ -1089,7 +1089,7 @@ trait JavaModule
     compileResources() ++ unmanaged
   }
 
-  private def resolvedMvnDeps0(sources: Boolean) = Task.Anon {
+  private[mill] def resolvedMvnDeps0(sources: Boolean) = Task.Anon {
     millResolver().classpath(
       Seq(
         BoundDep(
@@ -1127,17 +1127,13 @@ trait JavaModule
     resolvedMvnDeps0(sources = false)()
   }
 
-  def resolvedMvnSourceDeps: T[Seq[PathRef]] = Task {
-    resolvedMvnDeps0(sources = true)()
-  }
-
   /**
    * Resolved dependency sources, unpacked into a single directory. Useful to quickly
    * look up the sources of the dependencies on your classpath so you can find the
    * exact source code you are compiling and running against.
    */
   def resolvedMvnSources: T[PathRef] = Task {
-    for (jar <- resolvedMvnSourceDeps()) {
+    for (jar <- resolvedMvnDeps0(sources = true)()) {
       val jarName = jar.path.last.stripSuffix(".jar")
       os.unzip(jar.path, Task.dest / jarName)
     }
