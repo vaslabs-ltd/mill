@@ -15,10 +15,11 @@ object `package` extends SpringBootModule, MavenModule {
   object native extends MavenModule, NativeSpringBootBuildModule {
     def jvmVersion = "graalvm-community:23.0.1"
 
+    // Suppress warning about -H:IncludeResources
     override def nativeImageOptions = Task {
-      super.nativeImageOptions() ++ Seq(
+      Seq(
         "-H:+UnlockExperimentalVMOptions"
-      )
+      ) ++ super.nativeImageOptions()
     }
   }
 
