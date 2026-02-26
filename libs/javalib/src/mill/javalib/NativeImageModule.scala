@@ -286,10 +286,7 @@ trait NativeImageModule extends WithJvmWorkerModule, OfflineSupportModule {
     if (resources.isEmpty)
       Seq.empty[String]
     else {
-      Seq(
-        "-H:+UnlockExperimentalVMOptions",
-        s"-H:IncludeResources=${resources.mkString("|")}"
-      )
+      Seq(s"-H:IncludeResources=${resources.mkString("|")}")
     }
   }
 
