@@ -506,8 +506,12 @@ trait QuarkusModule extends JavaModule { outer =>
     override def forkArgs: T[Seq[String]] = Task {
       Seq(
         s"-Dquarkus-internal-test.serialized-app-model.path=${quarkusSerializedAppModel().path}",
-        // Required for Quarkus to adjust Java Modules configuration to match the various requirements of each extension
-        "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED"
+        // Configure Log Manager and add the required opens/exports
+        // See https://github.com/quarkusio/quarkus/blob/main/devtools/gradle/gradle-application-plugin/src/test/java/io/quarkus/gradle/tasks/JvmArgsConfigTest.java
+        "-Djava.util.logging.manager=org.jboss.logmanager.LogManager",
+        "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED",
+        "--add-opens=java.base/java.lang=ALL-UNNAMED",
+        "--add-exports=java.base/jdk.internal.module=ALL-UNNAMED"
       )
     }
 
