@@ -288,10 +288,16 @@ trait QuarkusModule extends JavaModule { outer =>
   }
 
   /**
-   * Dummy placeholder for Quarkus application model resources
+   * The resources to include in the Quarkus Application Model
    */
   def quarkusBuildResources: T[PathRef] = Task {
     val dir = Task.dest
+
+    resources().foreach { res =>
+      if (os.exists(res.path)) {
+        os.list(res.path).foreach(p => os.copy.into(p, dir))
+      }
+    }
     PathRef(dir)
   }
 
@@ -362,6 +368,15 @@ trait QuarkusModule extends JavaModule { outer =>
       Task.dest
     )
     PathRef(modelPath)
+  }
+
+  /**
+   * Make -parameters always present.
+   * This is required for Quarkus Qute Checked Templates and
+   * improved Reflection-based dependency injection.
+   */
+  override def mandatoryJavacOptions: T[Seq[String]] = Task {
+    super.mandatoryJavacOptions() ++ Seq("-parameters")
   }
 
   /**
