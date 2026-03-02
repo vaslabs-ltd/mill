@@ -13,6 +13,7 @@ import mill.bsp.worker.Utils.{
   outputPaths,
   sanitizeUri
 }
+import mill.bsp.worker.KotlinBuildTargetJO
 
 import java.util.concurrent.CompletableFuture
 import scala.jdk.CollectionConverters.*
@@ -22,7 +23,8 @@ import mill.api.daemon.internal.bsp.{
   BspModuleApi,
   BspServerResult,
   JvmBuildTarget,
-  ScalaBuildTarget
+  KotlinBuildTarget,
+  ScalaBuildTarget,
 }
 import mill.api.daemon.internal.*
 
@@ -144,6 +146,14 @@ trait MillBspEndpoints extends BuildServer with EndpointsApi {
             .collect { case bm: BspModuleApi => ctx.state.bspIdByModule(bm) }
         case _ => Seq()
       }
+
+      val logger = createLogger()
+      val dataToLog = ctx.value match {
+        case Some((dataKind, d)) => s"dataKind=${dataKind}, dataValue=${d}"
+        case None => "no data"
+      }
+      logger.info(s"Making build target for module ${ctx.module.bspDisplayName} with ${dataToLog}")
+
       val data = ctx.value match {
         case Some((dataKind, d: ScalaBuildTarget)) =>
           val target = new bsp4j.ScalaBuildTarget(
@@ -157,11 +167,20 @@ trait MillBspEndpoints extends BuildServer with EndpointsApi {
             target.setJvmBuildTarget(jvmBuildTarget(jbt))
           Some((dataKind, target))
 
+        // Pass a raw java object for KotlinBuildTarget since there is no corresponding class in BSP4J
+        // and let json serialization do it's magic
+        case Some((dataKind, kbt: KotlinBuildTarget)) =>
+          val jo = KotlinBuildTargetJO.fromKotlinBuildTarget(kbt)
+          logger.info(s"Created KotlinBuildTargetJO for module ${ctx.module.bspDisplayName} with data ${jo}")
+          Some((dataKind, jo))
+
+
         case Some((dataKind, d: JvmBuildTarget)) =>
           Some((dataKind, jvmBuildTarget(d)))
 
         case Some((dataKind, d)) =>
           ctx.evaluator.baseLogger.debug(s"Unsupported dataKind=${dataKind} with value=${d}")
+          logger.info(s"Unsupported dataKind=${dataKind} with value=${d}")
           None // unsupported data kind
         case None => None
       }

@@ -12,7 +12,7 @@ import mill.api.{BuildCtx, ModuleRef, Result}
 import mill.kotlinlib.worker.api.KotlinWorkerTarget
 import mill.javalib.api.CompilationResult
 import mill.javalib.api.JvmWorkerApi as PublicJvmWorkerApi
-import mill.javalib.api.internal.InternalJvmWorkerApi
+import mill.javalib.api.internal.{InternalJvmWorkerApi, JavaCompilerOptions, ZincOp}
 import mill.api.daemon.internal.{CompileProblemReporter, KotlinModuleApi, internal}
 import mill.javalib.{JavaModule, JvmWorkerModule, Lib}
 import mill.util.{Jvm, Version}
@@ -21,7 +21,7 @@ import mill.*
 import java.io.File
 import mainargs.Flag
 import mill.api.daemon.internal.bsp.{BspBuildTarget, BspModuleApi}
-import mill.javalib.api.internal.{JavaCompilerOptions, ZincOp}
+import mill.api.daemon.internal.bsp.KotlinBuildTarget
 
 /**
  * Core configuration required to compile a single Kotlin module
@@ -476,6 +476,22 @@ trait KotlinModule extends JavaModule with KotlinModuleApi { outer =>
     canCompile = true,
     canRun = true
   )
+
+  @internal
+  private[mill] def bspKotlinBuildTargetTask: Task[KotlinBuildTarget] = Task.Anon {
+    KotlinBuildTarget(
+      languageVersion = kotlinLanguageVersion(),
+      apiVersion = kotlinApiVersion(),
+      kotlincOptions = allKotlincOptions(),
+      associates = Seq(),
+      jvmBuildTarget = Some(bspJvmBuildTargetTask())
+    )
+  }
+
+  @internal
+  override def bspBuildTargetData: Task[Option[(String, AnyRef)]] = Task.Anon {
+    Some((KotlinBuildTarget.dataKind, bspKotlinBuildTargetTask()))
+  }
 
   override def prepareOffline(all: Flag): Command[Seq[PathRef]] = Task.Command {
     (
