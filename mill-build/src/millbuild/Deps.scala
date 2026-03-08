@@ -97,6 +97,7 @@ object Deps {
 
   val acyclic = mvn"com.lihaoyi:::acyclic:0.3.20"
   val ammoniteVersion = "3.0.4"
+  val asmAnalysis = mvn"org.ow2.asm:asm-analysis:9.9.1"
   val asmTree = mvn"org.ow2.asm:asm-tree:9.9.1"
   val bloopConfig = mvn"ch.epfl.scala::bloop-config:1.5.5".withDottyCompat(scalaVersion)
 
@@ -225,8 +226,10 @@ object Deps {
   val sonatypeCentralClient = mvn"com.lumidion::sonatype-central-client-requests:0.6.0"
   val kotlinVersion = "2.1.20"
   val kspVersion = "2.0.1"
+  val kotlinBuildToolsApiVersion_api = "2.3.0"
   val kotlinCompiler = mvn"org.jetbrains.kotlin:kotlin-compiler:$kotlinVersion"
-  val kotlinBuildToolsApi = mvn"org.jetbrains.kotlin:kotlin-build-tools-api:$kotlinVersion"
+  val kotlinBuildToolsApi_api =
+    mvn"org.jetbrains.kotlin:kotlin-build-tools-api:$kotlinBuildToolsApiVersion_api"
   val kotlinBuildToolsImpl = mvn"org.jetbrains.kotlin:kotlin-build-tools-impl:$kotlinVersion"
   val kotlinStdlib = mvn"org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
   val groovyVersion_lowerBound = "4.0.28"
