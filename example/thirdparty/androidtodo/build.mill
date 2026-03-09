@@ -278,8 +278,6 @@ object `shared-test` extends AndroidKotlinModule, AndroidHiltSupport {
   "Complete"
 ]
 
-> ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.AppNavigationTest
-
 > ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest
 
 > ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksTest
