@@ -278,7 +278,15 @@ object `shared-test` extends AndroidKotlinModule, AndroidHiltSupport {
   "Complete"
 ]
 
-> ./mill app.androidTest
+> ./mill app.androidTest -e package com.example.android.architecture.blueprints.todoapp.addedittask
+
+> ./mill app.androidTest -e package com.example.android.architecture.blueprints.todoapp.data.source.local
+
+> ./mill app.androidTest -e package com.example.android.architecture.blueprints.todoapp.statistics
+
+> ./mill app.androidTest -e com.example.android.architecture.blueprints.todoapp.taskdetail
+
+> ./mill app.androidTest -e package com.example.android.architecture.blueprints.todoapp.tasks
 
 > cat out/app/androidTest/testForked.dest/test-report.xml
 <?xml version='1.0' encoding='UTF-8'?>
