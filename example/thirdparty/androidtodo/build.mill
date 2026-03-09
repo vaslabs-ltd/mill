@@ -277,18 +277,13 @@ object `shared-test` extends AndroidKotlinModule, AndroidHiltSupport {
   "WaitTime: ...",
   "Complete"
 ]
-*/
 
-/** dont run
 > ./mill app.androidTest
 
 > cat out/app/androidTest/testForked.dest/test-report.xml
 <?xml version='1.0' encoding='UTF-8'?>
 <testsuites tests="38" failures="0" errors="0" skipped="0" time="...">
 ...
-*/
-
-/** Usage
 
 > ./mill show app.stopAndroidEmulator
 
