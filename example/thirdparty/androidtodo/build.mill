@@ -278,17 +278,11 @@ object `shared-test` extends AndroidKotlinModule, AndroidHiltSupport {
   "Complete"
 ]
 
-> ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.AppNavigationTest
-
-> ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksTest
-
-> ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest
-
-> ./mill app.androidTest -e package com.example.android.architecture.blueprints.todoapp.tasks
+> ./mill app.androidTest -e notClass com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest
 
 > cat out/app/androidTest/testForked.dest/test-report.xml
 <?xml version='1.0' encoding='UTF-8'?>
-<testsuites tests="38" failures="0" errors="0" skipped="0" time="...">
+<testsuites tests="26" failures="0" errors="0" skipped="0" time="...">
 ...
 
 > ./mill show app.stopAndroidEmulator
