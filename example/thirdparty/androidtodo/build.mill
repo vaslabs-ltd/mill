@@ -288,8 +288,6 @@ object `shared-test` extends AndroidKotlinModule, AndroidHiltSupport {
 
 > ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest#markTaskAsActive
 
-> ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest#showAllTasks
-
 > ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest#showActiveTasks
 
 > ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest#showCompletedTasks
