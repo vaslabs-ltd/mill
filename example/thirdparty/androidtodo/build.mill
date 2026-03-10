@@ -278,7 +278,29 @@ object `shared-test` extends AndroidKotlinModule, AndroidHiltSupport {
   "Complete"
 ]
 
-> ./mill app.androidTest -e notClass com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest
+> ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest#displayTask_whenRepositoryHasData
+
+> ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest#displayActiveTask
+
+> ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest#displayCompletedTask
+
+> ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest#markTaskAsComplete
+
+> ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest#markTaskAsActive
+
+> ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest#showAllTasks
+
+> ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest#showActiveTasks
+
+> ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest#showCompletedTasks
+
+> ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest#clearCompletedTasks
+
+> ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest#noTasks_AllTasksFilter_AddTaskViewVisible
+
+> ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest#noTasks_CompletedTasksFilter_AddTaskViewNotVisible
+
+> ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest#noTasks_ActiveTasksFilter_AddTaskViewNotVisible
 
 > cat out/app/androidTest/testForked.dest/test-report.xml
 <?xml version='1.0' encoding='UTF-8'?>
