@@ -292,8 +292,6 @@ object `shared-test` extends AndroidKotlinModule, AndroidHiltSupport {
 
 > ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest#showCompletedTasks
 
-> ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest#clearCompletedTasks
-
 > ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest#noTasks_AllTasksFilter_AddTaskViewVisible
 
 > ./mill app.androidTest -e class com.example.android.architecture.blueprints.todoapp.tasks.TasksScreenTest#noTasks_CompletedTasksFilter_AddTaskViewNotVisible
