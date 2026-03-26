@@ -882,6 +882,10 @@ trait AndroidAppModule extends AndroidModule { outer =>
 
   }
 
+  /**
+   * Concatenates all known ProGuard rules from the Android SDK, dependencies,
+   * and ones generated from
+   */
   def androidKnownProguardRules: T[String] = Task {
     // TODO need also pick proguard files from
     // [[moduleDeps]]
@@ -889,8 +893,14 @@ trait AndroidAppModule extends AndroidModule { outer =>
       .flatMap(_.proguardRules)
       .map(p => os.read(p.path))
       .appendedAll(mainDexPlatformRules)
-      .appended(os.read(androidLinkedResources().path / "proguard/main-dex-rules.pro"))
+      .appended(os.read(androidLinkedResources().path / "proguard/proguard-rules.pro"))
       .mkString("\n")
+  }
+
+  def androidKnownProguardRulesFile: T[PathRef] = Task {
+    val filePath = Task.dest / "known_rules.pro"
+    os.write(filePath, androidKnownProguardRules())
+    PathRef(filePath)
   }
 
   /**

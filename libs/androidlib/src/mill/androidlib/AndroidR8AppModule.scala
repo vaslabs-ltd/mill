@@ -143,6 +143,10 @@ trait AndroidR8AppModule extends AndroidAppModule { outer =>
     Seq.empty[String]
   }
 
+  def androidR8ExtraRules: T[Seq[String]] = Task {
+    Seq.empty[String]
+  }
+
   def androidDebugSettings: T[AndroidBuildTypeSettings] = Task {
     AndroidBuildTypeSettings()
   }
@@ -230,12 +234,13 @@ trait AndroidR8AppModule extends AndroidAppModule { outer =>
       val baselineOutOpt = diagnosticsDir / "baseline-profile-rewritten.txt"
 
       // Extra ProGuard rules
-      val extraRules =
-        Seq(
-          // Instruct R8 to print seeds and usage.
-          s"-printseeds $seedsOut",
-          s"-printusage $usageOut"
-        ) ++
+      val extraRules: Seq[String] =
+        androidR8ExtraRules() ++
+          Seq(
+            // Instruct R8 to print seeds and usage.
+            s"-printseeds $seedsOut",
+            s"-printusage $usageOut"
+          ) ++
           (if (androidBuildSettings().isMinifyEnabled) then androidGeneratedMinifyKeepRules()
            else Seq())
       // Create an extra ProGuard config file
@@ -319,6 +324,8 @@ trait AndroidR8AppModule extends AndroidAppModule { outer =>
         Seq(
           "--pg-conf",
           androidProguard().path.toString,
+          "--pg-conf",
+          androidKnownProguardRulesFile().path.toString,
           "--pg-conf",
           extraRulesFile.toString
         ) ++ androidCommonProguardFiles().flatMap(pgf => Seq("--pg-conf", pgf.path.toString))
