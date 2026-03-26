@@ -833,7 +833,7 @@ trait AndroidModule extends JavaModule { outer =>
 
     val resApkFile = apkDir / "res.apk"
 
-    val mainDexRulesProFile = proguard / "main-dex-rules.pro"
+    val proguardRules = proguard / "proguard-rules.pro"
 
     val aapt2Link = Seq(androidSdkModule().aapt2Exe().path.toString(), "link")
 
@@ -854,9 +854,8 @@ trait AndroidModule extends JavaModule { outer =>
       androidVersionCode().toString,
       "--version-name",
       androidVersionName(),
-      "--proguard-main-dex",
-      mainDexRulesProFile.toString,
-      "--proguard-conditional-keep-rules"
+      "--proguard",
+      proguardRules.toString
     ) ++ androidAaptOptions() ++ Seq(
       "-o",
       resApkFile.toString,
