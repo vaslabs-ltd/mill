@@ -35,39 +35,50 @@ def command = Task {
 // [#_os_lib_path_serialization]
 // === Path Serialization
 //
-// Mill configures OS-Lib's `os.Path` string serialization so paths under your
-// workspace and home directory are written using reproducible aliases such as
-// `../mill-workspace` and `../mill-home`, or `out/mill-workspace` when the
-// subprocess working directory is the workspace root. This affects APIs such as
-// `os.Path.toString`, `os.Path.toIO`, `os.Path.toNIO`, and values such as
-// `PathRef` that include an `os.Path` in their JSON representation.
+// Task return values are cached as JSON, so any `os.Path`/`PathRef` in them is
+// serialized to a string. To keep `out/` independent of where the build lives on disk
+// (so caches stay portable and can feed a xref:large/remote-caching.adoc[remote cache]),
+// Mill rewrites paths under the workspace or home directory as relative aliases --
+// `../mill-workspace/...` and `../mill-home/...` -- and plants matching forwarder
+// symlinks so they resolve back to the real files. This affects `os.Path.toString`,
+// `.toIO`, `.toNIO`, and any serialized `os.Path`/`PathRef`. Within a task you never
+// notice it: the aliases round-trip transparently.
 //
-// This keeps task outputs, cache keys, and generated JSON independent of the
-// absolute checkout location and user home directory. Mill creates the matching
-// alias symlinks around task and subprocess working directories, so these paths
-// can still be resolved when they are used in the expected Mill context.
+// ==== When to reach for custom serialization
 //
-// If you need more explicit control over how a path is serialized, use the
-// `PathRef.to*` helpers rather than calling `.toString` directly:
+// An alias only resolves from a cwd where Mill planted its forwarders, which it does for
+// just three cwd shapes: task `.dest` folders and the run sandbox (which use `../mill-*`),
+// and the workspace root (which uses `out/mill-*`, since `../mill-*` would escape the
+// workspace). So when serializing a path for a subprocess, the correct string depends on
+// *that subprocess's* cwd, not the current task's, and plain `.toString` is often wrong.
+// Pick the `PathRef.to*` helper for where the subprocess runs and what it accepts:
 //
-// * `PathRef.toRelString(path, subprocessCwd)` formats a path using Mill's
-//   reproducible aliases relative to the working directory of a subprocess. Use
-//   this for command-line arguments, environment variables, or config files that
-//   are consumed by a subprocess that will run from `subprocessCwd` and can accept
-//   relative paths.
+// `PathRef.toRelString(path, subprocessCwd)`::
+// The reproducible form: serializes `path` using the alias scheme valid at
+// `subprocessCwd` (`out/mill-*` at the workspace root, `../mill-*` in a `.dest`/sandbox),
+// falling back to an absolute path when `subprocessCwd` has no forwarders. This is the
+// only custom form that stays reproducible (it never bakes in an absolute path), so
+// prefer it whenever the subprocess runs in a directory Mill aliases and accepts relative
+// paths. Reach for it specifically when
+// the subprocess's cwd differs from the current task's -- most commonly a tool you spawn
+// at the *workspace root*, whose `out/mill-*` aliases differ from the task's `../mill-*`,
+// so the default `.toString` would be wrong. (`workspaceRoot` is the default
+// `subprocessCwd`, matching that common case.)
 //
-// * `PathRef.toAbsString(path)`, `PathRef.toAbsFile(path)`, and
-//   `PathRef.toAbsNioPath(path)` bypass OS-Lib's relativizing serializer and return
-//   real absolute paths. Use these for Java APIs or external tools that require
-//   absolute paths, or for processes that do not run with Mill's path aliases.
+// `PathRef.toAbsString(path)` / `PathRef.toAbsFile(path)` / `PathRef.toAbsNioPath(path)`::
+// The real absolute path, as a `String`, `java.io.File`, or `java.nio.file.Path`, with
+// the relativizing serializer bypassed. Use these in two cases: the subprocess runs in
+// some directory Mill does not alias (so a relative alias can't resolve there), or it
+// treats relative and absolute paths differently -- resolving relatives against a base
+// other than its cwd, or accepting only absolute paths.
 //
-// * `PathRef.toResolvedPathString(path)` and `PathRef.toResolvedOsPath(path)`
-//   resolve symlinks when the path exists before serializing it. Use these when a
-//   long-lived process or tool needs the real on-disk location rather than a
-//   lexical path that may pass through a Mill alias symlink.
-//
-// Prefer the reproducible `toRelString` form when it is accepted by the consumer.
-// Use the absolute or resolved forms only where the consumer requires that style.
+// `PathRef.toResolvedPathString(path)` / `PathRef.toResolvedOsPath(path)`::
+// Like the absolute forms, but with symlinks resolved to the canonical on-disk location,
+// so the result never points through one of Mill's forwarder symlinks. Use these when the
+// consumer collapses `..` segments lexically or otherwise needs the canonical path: an
+// alias routed through a forwarder symlink could otherwise resolve to the wrong file. They
+// resolve the path when it exists on disk and fall back to the plain absolute form
+// otherwise.
 
 /** Usage
 
