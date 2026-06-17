@@ -40,8 +40,8 @@ details.
 
 * *Remote Caching*: share task outputs across worktrees, machines, and CI via a remote cache,
   enabled with `--remote-cache-location` (or the `mill-remote-cache-location` build-header key).
-  Mill supports the Bazel remote-cache protocol and any Bazel-compatible servers 
-  (e.g. https://github.com/buchgr/bazel-remote[Bazel-Remote])
+  Mill supports the Bazel remote-cache protocol and any Bazel-compatible cache servers such as
+  e.g. https://github.com/buchgr/bazel-remote[Bazel-Remote].
   See https://mill-build.org/mill/main-branch/large/remote-caching.html[Remote Caching]
   {link-pr}/2777[#2777]
 
