@@ -66,19 +66,21 @@ def command = Task {
 // `subprocessCwd`, matching that common case.)
 //
 // `PathRef.toAbsString(path)` / `PathRef.toAbsFile(path)` / `PathRef.toAbsNioPath(path)`::
-// The real absolute path, as a `String`, `java.io.File`, or `java.nio.file.Path`, with
-// the relativizing serializer bypassed. Use these in two cases: the subprocess runs in
-// some directory Mill does not alias (so a relative alias can't resolve there), or it
-// treats relative and absolute paths differently -- resolving relatives against a base
-// other than its cwd, or accepting only absolute paths.
+// The *lexically* absolute path -- made absolute and `..`-normalized textually, without
+// touching the disk, so any symlinks are left intact -- as a `String`, `java.io.File`, or
+// `java.nio.file.Path`. Use these when the subprocess runs in some directory Mill does not
+// alias (so a relative alias can't resolve there), or treats relative and absolute paths
+// differently (resolving relatives against a base other than its cwd, or accepting only
+// absolute paths).
 //
 // `PathRef.toResolvedPathString(path)` / `PathRef.toResolvedOsPath(path)`::
-// Like the absolute forms, but with symlinks resolved to the canonical on-disk location,
-// so the result never points through one of Mill's forwarder symlinks. Use these when the
-// consumer collapses `..` segments lexically or otherwise needs the canonical path: an
-// alias routed through a forwarder symlink could otherwise resolve to the wrong file. They
-// resolve the path when it exists on disk and fall back to the plain absolute form
-// otherwise.
+// The same, but additionally run through `toRealPath`, so symlinks are *followed* to the
+// canonical on-disk location. The difference from the `toAbs*` forms only shows up when
+// the path traverses a symlink -- one of Mill's `mill-*` forwarders, or an OS symlink like
+// macOS's `/tmp` -> `/private/tmp` -- and the consumer canonicalizes paths itself (e.g.
+// Node's module resolution or `native-image`) or you compare two paths for equality; a
+// merely-lexical absolute path would still contain the symlink and mismatch the real one.
+// Falls back to the lexical absolute form when the path doesn't exist on disk.
 
 /** Usage
 
