@@ -24,6 +24,11 @@ see the list at https://repo1.maven.org/maven2/com/lihaoyi/mill-dist_
 :prev-version: 1.1.6
 _Changes since {prev-version}:_
 
+`1.2.0` is planned to be a binary-compatible but breaking update to the Mill build tool: while
+Mill's APIs and method signatures won't change, some third-party plugins or custom build logic 
+may need to be tweaked for compatibility with the new path-serialization strategy necessary
+to support reproducible builds and remote caching.
+
 The headline features of Mill `1.2.0` are *Remote Caching* and a *reproducible `out/` folder*.
 Mill now serializes absolute paths under the workspace and home directories as stable relative
 aliases, making `out/` independent of where the build lives on disk. This makes task caches
@@ -42,7 +47,9 @@ details.
   are now serialized as stable relative aliases, so task caches, metadata, and logs no longer
   embed machine-specific absolute paths. See
   https://mill-build.org/mill/main-branch/fundamentals/out-dir.html#_reproducible_out_contents[Reproducible `out/` Contents]
-  {link-pr}/4642[#4642]
+  {link-pr}/4642[#4642]. __**Some user code may need to customize exactly how paths are serialized
+  to ensure it works while still maintaining reproducibility**__ 
+  (see https://mill-build.org/mill/main-branch/fundamentals/bundled-libraries.html#_os_lib_path_serialization[Path Serialization])
 
 * *Fine-grained task-level concurrency between launchers*: the Mill daemon now uses per-task
   read/write locking instead of a single global workspace lock, so multiple concurrent `mill`
