@@ -1,27 +1,10 @@
 package mill.javalib.quarkus
 
-import io.quarkus.bootstrap.app.{
-  ApplicationModelSerializer,
-  AugmentAction,
-  CuratedApplication,
-  QuarkusBootstrap
-}
+import io.quarkus.bootstrap.app.{ApplicationModelSerializer, AugmentAction, CuratedApplication, QuarkusBootstrap}
 import io.quarkus.bootstrap.classloading.QuarkusClassLoader
-import io.quarkus.bootstrap.model.{
-  ApplicationModel,
-  ApplicationModelBuilder,
-  CapabilityContract,
-  PlatformImportsImpl,
-  PlatformReleaseInfo
-}
+import io.quarkus.bootstrap.model.*
 import io.quarkus.bootstrap.util.BootstrapUtils
-import io.quarkus.bootstrap.workspace.{
-  ArtifactSources,
-  DefaultArtifactSources,
-  SourceDir,
-  WorkspaceModule,
-  WorkspaceModuleId
-}
+import io.quarkus.bootstrap.workspace.*
 import io.quarkus.bootstrap.{BootstrapAppModelFactory, BootstrapConstants}
 import io.quarkus.deployment.CodeGenerator
 import io.quarkus.fs.util.ZipUtils
@@ -30,8 +13,7 @@ import io.quarkus.paths.{PathCollection, PathList}
 import mill.javalib.quarkus.ApplicationModelWorker.AppMode.Test
 import mill.javalib.quarkus.ApplicationModelWorker.{AppMode, ModuleClassifier, ModuleData}
 
-import java.nio.file.Files
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 import java.util.Properties
 import java.util.function.Consumer
 import scala.jdk.CollectionConverters
@@ -121,105 +103,7 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
       appModel: ApplicationModelWorker.AppModel,
       destination: os.Path
   ): os.Path = {
-    val factory = BootstrapAppModelFactory.newInstance()
-    factory.setProjectRoot(appModel.projectRoot.toNIO)
-
-    def toResolvedDependencyBuilder(dep: ApplicationModelWorker.Dependency)
-        : ResolvedDependencyBuilder = {
-      val builder = ResolvedDependencyBuilder.newInstance()
-        .setResolvedPath(dep.resolvedPath.toNIO)
-        .setGroupId(dep.groupId)
-        .setArtifactId(dep.artifactId)
-        .setVersion(dep.version)
-
-      if (appModel.appMode == Test) {
-        builder.setDeploymentCp()
-        builder.setRuntimeCp()
-      }
-      if (dep.isRuntime) {
-        builder.setRuntimeCp()
-      }
-
-      if (dep.hasExtension) {
-        builder.setFlags(DependencyFlags.RUNTIME_EXTENSION_ARTIFACT)
-        builder.setDeploymentCp()
-        if (dep.isTopLevelArtifact)
-          builder.setFlags(DependencyFlags.TOP_LEVEL_RUNTIME_EXTENSION_ARTIFACT)
-      }
-
-      if (dep.isDeployment)
-        builder.setDeploymentCp()
-
-      builder
-    }
-
-    val dependencies = appModel.dependencies.map(toResolvedDependencyBuilder)
-
-    val workspaceModuleBuilder = WorkspaceModule.builder()
-      .setModuleDir(appModel.projectRoot.toNIO)
-      .setModuleId(
-        WorkspaceModuleId.of(appModel.groupId, appModel.artifactId, appModel.version)
-      ).setBuildDir(appModel.buildDir.toNIO)
-      .setBuildFile(appModel.buildFile.toNIO)
-
-    appModel.moduleData.foreach(md =>
-      workspaceModuleBuilder.addArtifactSources(
-        artifactSources(md)
-      )
-    )
-
-    val resolvedDependencyBuilder = ResolvedDependencyBuilder.newInstance().setWorkspaceModule(
-      workspaceModuleBuilder
-        .build()
-    ).setResolvedPaths(
-      PathList.of(
-        appModel.moduleData.flatMap(md =>
-          Seq(md.sources.destDir.toNIO, md.resources.destDir.toNIO)
-        )*
-      )
-    )
-      .setGroupId(appModel.groupId)
-      .setArtifactId(appModel.artifactId)
-      .setVersion(appModel.version)
-
-    val platformImport = PlatformImportsImpl()
-
-    val boms: Seq[ArtifactCoords] = appModel.boms.map { bom =>
-      val parts = bom.split(":") // todo make a bom model in the AppModel
-
-      ArtifactCoords.pom(
-        parts(0),
-        parts(1),
-        parts(2)
-      )
-    }
-
-    boms.foreach(platformImport.getImportedPlatformBoms.add)
-
-    platformImport.getPlatformReleaseInfo.add(
-      PlatformReleaseInfo(
-        "io.quarkus.platform",
-        appModel.quarkusVersion,
-        appModel.quarkusVersion,
-        boms.toList.asJava
-      )
-    )
-
-    platformImport.getPlatformProperties.put(
-      "platform.quarkus.native.builder-image",
-      appModel.nativeImage
-    )
-
-    val modelBuilder = ApplicationModelBuilder()
-      .setAppArtifact(resolvedDependencyBuilder)
-      .setPlatformImports(platformImport)
-      .addDependencies(dependencies.asJava)
-
-    processQuarkusDependency(resolvedDependencyBuilder, modelBuilder)
-
-    dependencies.foreach((resolvedDependencyBuilder: ResolvedDependencyBuilder) =>
-      processQuarkusDependency(resolvedDependencyBuilder, modelBuilder)
-    )
+    val modelBuilder = quarkusAppModelBuilder(appModel)
 
     val targetFile = appModel.appMode match {
       case AppMode.App => BootstrapUtils.resolveSerializedAppModelPath(destination.toNIO)
@@ -496,7 +380,7 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
       sourceRegistrar,
       applicationModel,
       props,
-      "TEST",
+      "DEVELOPMENT",
       true
     )
     generatedSourcesDir
