@@ -44,10 +44,9 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
    * Bootstraps a Quarkus Application with the application model
    * provided (usually created by [[quarkusGenerateApplicationModel]]).
    * Needs a target directory and a compiled artifact (jar)
-   *
    * @param applicationModelFile The path of the serialized application model file
-   * @param destRunJar           The directory to store the resulting `quarkus-run.jar`
-   * @param jar                  The jar created by the Mill JavaModule (outside of Quarkus)
+   * @param destRunJar The directory to store the resulting `quarkus-run.jar`
+   * @param jar The jar created by the Mill JavaModule (outside of Quarkus)
    * @return The path of the resulting `quarkus-run.jar`
    */
   def quarkusBootstrapApplication(

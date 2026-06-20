@@ -64,10 +64,10 @@ trait QuarkusModule extends JavaModule { outer =>
    * The artifact id used to Quarkus bootstrap this module.
    * It needs to be set and a non-empty String for the Quarkus application model serialization to work!
    */
-  def artifactId: T[String] = Task {
+  override def artifactId: T[String] = Task {
     Option(super.artifactId()).filterNot(_.isEmpty)
       .getOrElse(Task.fail(
-        "The artifactVersion is not set. Please override the artifactVersion so quarkus can generate the application model for this module"
+        "The artifactId is not set. Please override the artifactId so quarkus can generate the application model for this module"
       ))
   }
 
@@ -372,11 +372,12 @@ trait QuarkusModule extends JavaModule { outer =>
   }
 
   def quarkusAppModel: T[ApplicationModelWorker.AppModel] = Task {
-    quarkusAppModelWithBuildDir(Task.Anon(compile().classes), quarkusModuleData)()
+    quarkusAppModelWithBuildDir(Task.Anon(compile().classes), Task.Anon(quarkusModuleData()))()
   }
 
   def quarkusCodeGen: T[PathRef] = Task {
     os.makeDir.all(Task.dest / "build")
+    os.makeDir.all(Task.dest / "generated")
     val out = quarkusApplicationModelWorker().quarkusCodeGen(
       quarkusCodeGenerationAppModel(),
       Task.dest / "generated",
