@@ -1,6 +1,11 @@
 package mill.javalib.quarkus
 
-import io.quarkus.bootstrap.app.{ApplicationModelSerializer, AugmentAction, CuratedApplication, QuarkusBootstrap}
+import io.quarkus.bootstrap.app.{
+  ApplicationModelSerializer,
+  AugmentAction,
+  CuratedApplication,
+  QuarkusBootstrap
+}
 import io.quarkus.bootstrap.classloading.QuarkusClassLoader
 import io.quarkus.bootstrap.model.*
 import io.quarkus.bootstrap.util.BootstrapUtils
