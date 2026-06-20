@@ -345,16 +345,65 @@ trait QuarkusModule extends JavaModule { outer =>
     quarkusModuleData() ++ t.flatten
   }
 
+  /**
+   * The module data to pass to the quarkus ApplicationModel without the compiled output directory
+   */
+  def quarkusCodeGenModuleData: T[Seq[ApplicationModelWorker.ModuleData]] = Task {
+    os.makeDir.all(Task.dest / "empty")
+    Seq(
+      ApplicationModelWorker.ModuleData(
+        quarkusModuleClassifier(),
+        ApplicationModelWorker.Source(sources().head.path, Task.dest / "empty"),
+        ApplicationModelWorker.Source(resources().head.path, quarkusBuildResources().path)
+      )
+    )
+  }
+
+  def transitiveQuarkusCodeGenModuleData: T[Seq[ApplicationModelWorker.ModuleData]] = Task {
+    val t = Task.sequence(moduleDepsChecked.collect {
+      case module: QuarkusModule => module.quarkusModuleData
+    })()
+
+    quarkusCodeGenModuleData() ++ t.flatten
+  }
+
+  def quarkusCodeGenerationAppModel: T[ApplicationModelWorker.AppModel] = Task {
+    quarkusAppModelWithBuildDir(Task.Anon(PathRef(Task.dest)), quarkusCodeGenModuleData)()
+  }
+
   def quarkusAppModel: T[ApplicationModelWorker.AppModel] = Task {
+    quarkusAppModelWithBuildDir(Task.Anon(compile().classes), quarkusModuleData)()
+  }
+
+  def quarkusCodeGen: T[PathRef] = Task {
+    os.makeDir.all(Task.dest / "build")
+    val out = quarkusApplicationModelWorker().quarkusCodeGen(
+      quarkusCodeGenerationAppModel(),
+      Task.dest / "generated",
+      sources().map(_.path / os.up),
+      Task.dest / "build",
+      quarkusJarBuildPropertiesFile().path,
+      false
+    )
+    PathRef(out)
+  }
+
+  override def generatedSources: Task.Simple[Seq[PathRef]] = super.generatedSources() ++
+    os.list(quarkusCodeGen().path).map(PathRef(_))
+
+  private def quarkusAppModelWithBuildDir(
+      buildDir: Task[PathRef],
+      moduleData: Task[Seq[ApplicationModelWorker.ModuleData]]
+  ): Task[ApplicationModelWorker.AppModel] = Task.Anon {
     ApplicationModelWorker.AppModel(
       projectRoot = outer.moduleDir,
-      buildDir = outer.compile().classes.path,
+      buildDir = buildDir().path,
       buildFile = quarkusMillBuildFile().path,
       quarkusVersion = quarkusPlatformVersion(),
       groupId = artifactGroupId(),
       artifactId = artifactId(),
       version = artifactVersion(),
-      moduleData = transitiveQuarkusModuleData(),
+      moduleData = moduleData(),
       boms = bomMvnDeps().map(_.formatted),
       dependencies = quarkusDependencies(),
       nativeImage = quarkusNativeImage(),

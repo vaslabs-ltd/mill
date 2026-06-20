@@ -22,8 +22,16 @@ trait ApplicationModelWorker extends AutoCloseable {
   def quarkusDeploymentDependencies(runtimeDeps: Seq[ApplicationModelWorker.Dependency])
       : Seq[ApplicationModelWorker.Dependency]
 
-}
+  def quarkusCodeGen(
+      appModel: ApplicationModelWorker.AppModel,
+      generatedSourcesDir: os.Path,
+      sourcesDir: Seq[os.Path],
+      buildDir: os.Path,
+      buildProperties: os.Path,
+      isTest: Boolean
+  ): os.Path
 
+}
 object ApplicationModelWorker {
 
   /**

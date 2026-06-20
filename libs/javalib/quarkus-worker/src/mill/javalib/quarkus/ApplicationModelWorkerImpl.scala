@@ -1,7 +1,14 @@
 package mill.javalib.quarkus
 
-import io.quarkus.bootstrap.app.{ApplicationModelSerializer, AugmentAction, QuarkusBootstrap}
+import io.quarkus.bootstrap.app.{
+  ApplicationModelSerializer,
+  AugmentAction,
+  CuratedApplication,
+  QuarkusBootstrap
+}
+import io.quarkus.bootstrap.classloading.QuarkusClassLoader
 import io.quarkus.bootstrap.model.{
+  ApplicationModel,
   ApplicationModelBuilder,
   CapabilityContract,
   PlatformImportsImpl,
@@ -16,14 +23,17 @@ import io.quarkus.bootstrap.workspace.{
   WorkspaceModuleId
 }
 import io.quarkus.bootstrap.{BootstrapAppModelFactory, BootstrapConstants}
+import io.quarkus.deployment.CodeGenerator
 import io.quarkus.fs.util.ZipUtils
 import io.quarkus.maven.dependency.{ArtifactCoords, DependencyFlags, ResolvedDependencyBuilder}
-import io.quarkus.paths.PathList
+import io.quarkus.paths.{PathCollection, PathList}
 import mill.javalib.quarkus.ApplicationModelWorker.AppMode.Test
 import mill.javalib.quarkus.ApplicationModelWorker.{AppMode, ModuleClassifier, ModuleData}
 
 import java.nio.file.Files
+import java.nio.file.Path
 import java.util.Properties
+import java.util.function.Consumer
 import scala.jdk.CollectionConverters
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
@@ -34,7 +44,7 @@ import scala.util.Using
  * At the moment there are 2 stages supported:
  * 1. Create a single module's Application Model and serialize it
  * 2. Feed the deserialised model from step 1 to [[QuarkusBootstrap]] and execute
- * the Quarkus build with an AugmentAction
+ *    the Quarkus build with an AugmentAction
  *
  * In addition, a helper method supports picking in the library or module dependencies
  * to detect which have deployment dependencies.
@@ -47,9 +57,10 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
    * Bootstraps a Quarkus Application with the application model
    * provided (usually created by [[quarkusGenerateApplicationModel]]).
    * Needs a target directory and a compiled artifact (jar)
+   *
    * @param applicationModelFile The path of the serialized application model file
-   * @param destRunJar The directory to store the resulting `quarkus-run.jar`
-   * @param jar The jar created by the Mill JavaModule (outside of Quarkus)
+   * @param destRunJar           The directory to store the resulting `quarkus-run.jar`
+   * @param jar                  The jar created by the Mill JavaModule (outside of Quarkus)
    * @return The path of the resulting `quarkus-run.jar`
    */
   def quarkusBootstrapApplication(
@@ -224,6 +235,110 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
 
   }
 
+  private def quarkusAppModelBuilder(appModel: ApplicationModelWorker.AppModel) = {
+    val factory = BootstrapAppModelFactory.newInstance()
+    factory.setProjectRoot(appModel.projectRoot.toNIO)
+
+    def toResolvedDependencyBuilder(dep: ApplicationModelWorker.Dependency)
+        : ResolvedDependencyBuilder = {
+      val builder = ResolvedDependencyBuilder.newInstance()
+        .setResolvedPath(dep.resolvedPath.toNIO)
+        .setGroupId(dep.groupId)
+        .setArtifactId(dep.artifactId)
+        .setVersion(dep.version)
+
+      if (appModel.appMode == Test) {
+        builder.setDeploymentCp()
+        builder.setRuntimeCp()
+      }
+      if (dep.isRuntime) {
+        builder.setRuntimeCp()
+      }
+
+      if (dep.hasExtension) {
+        builder.setFlags(DependencyFlags.RUNTIME_EXTENSION_ARTIFACT)
+        builder.setDeploymentCp()
+        if (dep.isTopLevelArtifact)
+          builder.setFlags(DependencyFlags.TOP_LEVEL_RUNTIME_EXTENSION_ARTIFACT)
+      }
+
+      if (dep.isDeployment)
+        builder.setDeploymentCp()
+
+      builder
+    }
+
+    val dependencies = appModel.dependencies.map(toResolvedDependencyBuilder)
+
+    val workspaceModuleBuilder = WorkspaceModule.builder()
+      .setModuleDir(appModel.projectRoot.toNIO)
+      .setModuleId(
+        WorkspaceModuleId.of(appModel.groupId, appModel.artifactId, appModel.version)
+      ).setBuildDir(appModel.buildDir.toNIO)
+      .setBuildFile(appModel.buildFile.toNIO)
+
+    appModel.moduleData.foreach(md =>
+      workspaceModuleBuilder.addArtifactSources(
+        artifactSources(md)
+      )
+    )
+
+    val resolvedDependencyBuilder = ResolvedDependencyBuilder.newInstance().setWorkspaceModule(
+      workspaceModuleBuilder
+        .build()
+    ).setResolvedPaths(
+      PathList.of(
+        appModel.moduleData.flatMap(md =>
+          Seq(md.sources.destDir.toNIO, md.resources.destDir.toNIO)
+        )*
+      )
+    )
+      .setGroupId(appModel.groupId)
+      .setArtifactId(appModel.artifactId)
+      .setVersion(appModel.version)
+
+    val platformImport = PlatformImportsImpl()
+
+    val boms: Seq[ArtifactCoords] = appModel.boms.map { bom =>
+      val parts = bom.split(":") // todo make a bom model in the AppModel
+
+      ArtifactCoords.pom(
+        parts(0),
+        parts(1),
+        parts(2)
+      )
+    }
+
+    boms.foreach(platformImport.getImportedPlatformBoms.add)
+
+    platformImport.getPlatformReleaseInfo.add(
+      PlatformReleaseInfo(
+        "io.quarkus.platform",
+        appModel.quarkusVersion,
+        appModel.quarkusVersion,
+        boms.toList.asJava
+      )
+    )
+
+    platformImport.getPlatformProperties.put(
+      "platform.quarkus.native.builder-image",
+      appModel.nativeImage
+    )
+
+    val modelBuilder = ApplicationModelBuilder()
+      .setAppArtifact(resolvedDependencyBuilder)
+      .setPlatformImports(platformImport)
+      .addDependencies(dependencies.asJava)
+
+    processQuarkusDependency(resolvedDependencyBuilder, modelBuilder)
+
+    dependencies.foreach((resolvedDependencyBuilder: ResolvedDependencyBuilder) =>
+      processQuarkusDependency(resolvedDependencyBuilder, modelBuilder)
+    )
+
+    modelBuilder
+  }
+
   def artifactSources(moduleData: ModuleData): ArtifactSources = {
     val sources = SourceDir.of(moduleData.sources.dir.toNIO, moduleData.sources.destDir.toNIO)
     val resources = SourceDir.of(moduleData.resources.dir.toNIO, moduleData.resources.destDir.toNIO)
@@ -274,11 +389,13 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
 
   private def hasDeploymentDep(dep: ApplicationModelWorker.Dependency): Boolean = {
     val artifact = dep.resolvedPath
+
     def metaInfPathExists = Using.resource(ZipUtils.newFileSystem(artifact.toNIO)) { artifactFs =>
       val quarkusDir = artifactFs.getPath(BootstrapConstants.META_INF)
       val quarkusDescr = quarkusDir.resolve(BootstrapConstants.DESCRIPTOR_FILE_NAME)
       Files.exists(quarkusDescr)
     }
+
     dep.isRuntime && metaInfPathExists
   }
 
@@ -312,6 +429,77 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
     Using.resource(Files.newBufferedReader(path))(br => rtProps.load(br))
 
     rtProps
+  }
+
+  /**
+   * Uses Quarkus [[CodeGenContext]] to generate code for the given application model.
+   * Quarkus does not rely on Javac annotation processors but has its own bespoke process
+   * that is fully managed.
+   * Adaptation from io.quarkus.gradle.tasks.worker.CodeGenWorker
+   */
+  override def quarkusCodeGen(
+      appModel: ApplicationModelWorker.AppModel,
+      generatedSourcesDir: os.Path,
+      sourcesDir: Seq[os.Path],
+      buildDir: os.Path,
+      buildProperties: os.Path,
+      isTest: Boolean
+  ): os.Path = {
+    val applicationModel: ApplicationModel = quarkusAppModelBuilder(appModel).build()
+
+    val props = new Properties()
+    Using.resource(os.read.inputStream(buildProperties))(props.load)
+
+    val quarkusBootstrap = QuarkusBootstrap.builder.setBaseClassLoader(getClass.getClassLoader)
+      .setExistingModel(applicationModel)
+      .setTargetDirectory(buildDir.toNIO)
+      .setBaseName("main")
+      .setBuildSystemProperties(props)
+      .setAppArtifact(applicationModel.getAppArtifact)
+      .setLocalProjectDiscovery(false)
+      .setIsolateDeployment(true)
+      .setDependencyInfoProvider(() => null)
+      .build
+
+    val curatedApplication: CuratedApplication = quarkusBootstrap.bootstrap()
+
+    val deploymentClassLoader = curatedApplication.createDeploymentClassLoader()
+
+    val codeGenerator = deploymentClassLoader.loadClass(classOf[CodeGenerator].getName)
+
+    val initAndRun = codeGenerator.getMethod(
+      "initAndRun",
+      classOf[QuarkusClassLoader],
+      classOf[PathCollection],
+      classOf[Path],
+      classOf[Path],
+      classOf[Consumer[_]],
+      classOf[ApplicationModel],
+      classOf[Properties],
+      classOf[String],
+      classOf[Boolean]
+    )
+
+    val sourcesPathCollection: PathCollection = PathList.of(sourcesDir.map(_.toNIO)*)
+    val generatedSourcesPath: Path = generatedSourcesDir.toNIO
+    val buildPropertiesPath: Path = buildProperties.toNIO
+
+    val sourceRegistrar: Consumer[Path] = _ => ()
+    curatedApplication.getApplicationModel
+
+    initAndRun.invoke(
+      null,
+      deploymentClassLoader,
+      sourcesPathCollection,
+      generatedSourcesPath,
+      buildPropertiesPath,
+      sourceRegistrar,
+      applicationModel,
+      props,
+      "TEST",
+      true
+    )
+    generatedSourcesDir
   }
 
   override def close(): Unit = {
