@@ -368,11 +368,17 @@ trait QuarkusModule extends JavaModule { outer =>
   }
 
   def quarkusCodeGenerationAppModel: T[ApplicationModelWorker.AppModel] = Task {
-    quarkusAppModelWithBuildDir(Task.Anon(PathRef(Task.dest)), quarkusCodeGenModuleData)()
+    quarkusAppModelWithBuildDir(
+      Task.Anon(PathRef(Task.dest)),
+      Task.Anon(transitiveQuarkusCodeGenModuleData())
+    )()
   }
 
   def quarkusAppModel: T[ApplicationModelWorker.AppModel] = Task {
-    quarkusAppModelWithBuildDir(Task.Anon(compile().classes), Task.Anon(quarkusModuleData()))()
+    quarkusAppModelWithBuildDir(
+      Task.Anon(compile().classes),
+      Task.Anon(transitiveQuarkusModuleData())
+    )()
   }
 
   def quarkusCodeGen: T[PathRef] = Task {
