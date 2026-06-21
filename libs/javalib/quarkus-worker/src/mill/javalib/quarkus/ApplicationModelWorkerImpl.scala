@@ -385,7 +385,7 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
       applicationModel,
       props,
       "DEVELOPMENT",
-      true
+      appModel.appMode == Test
     )
     generatedSourcesDir
   }
