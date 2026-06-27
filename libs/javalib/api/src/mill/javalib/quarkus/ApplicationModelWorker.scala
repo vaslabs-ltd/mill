@@ -4,6 +4,7 @@ import mill.api.daemon.experimental
 import upickle.ReadWriter
 import mill.api.JsonFormatters.pathReadWrite
 import mill.api.PathRef
+import mill.javalib.quarkus.ApplicationModelWorker.LaunchMode
 
 @experimental
 trait ApplicationModelWorker extends AutoCloseable {
@@ -28,6 +29,7 @@ trait ApplicationModelWorker extends AutoCloseable {
       sourcesDir: Seq[os.Path],
       buildDir: os.Path,
       buildProperties: os.Path,
+      launchMode: LaunchMode,
       isTest: Boolean
   ): os.Path
 
@@ -77,6 +79,14 @@ object ApplicationModelWorker {
 
   enum AppMode derives ReadWriter {
     case App
+    case Test
+  }
+
+  /** Mill API for io.quarkus.runtime.LaunchMode */
+  enum LaunchMode derives ReadWriter {
+    case Normal
+    case Run
+    case Development
     case Test
   }
 

@@ -381,16 +381,26 @@ trait QuarkusModule extends JavaModule { outer =>
     )()
   }
 
+  /**
+   * The kind of build that this module creates for quarkus. Defaults on
+   * Development (dev or an IDE launch).
+   * For more info see [[io.quarkus.runtime.LaunchMode]]
+   */
+  def quarkusLaunchMode: T[ApplicationModelWorker.LaunchMode] = Task {
+    ApplicationModelWorker.LaunchMode.Development
+  }
+
   def quarkusCodeGen: T[PathRef] = Task {
     os.makeDir.all(Task.dest / "build")
     os.makeDir.all(Task.dest / "generated")
     val out = quarkusApplicationModelWorker().quarkusCodeGen(
-      quarkusCodeGenerationAppModel(),
-      Task.dest / "generated",
-      sources().map(_.path / os.up),
-      Task.dest / "build",
-      quarkusJarBuildPropertiesFile().path,
-      false
+      appModel = quarkusCodeGenerationAppModel(),
+      generatedSourcesDir = Task.dest / "generated",
+      sourcesDir = sources().map(_.path / os.up),
+      buildDir = Task.dest / "build",
+      buildProperties = quarkusJarBuildPropertiesFile().path,
+      launchMode = quarkusLaunchMode(),
+      isTest = false
     )
     PathRef(out)
   }
@@ -559,6 +569,15 @@ trait QuarkusModule extends JavaModule { outer =>
 
     override def quarkusAppMode: T[ApplicationModelWorker.AppMode] = Task {
       ApplicationModelWorker.AppMode.Test
+    }
+
+    /**
+     * The kind of build that this module creates for quarkus. Defaults on
+     * Test (a test run).
+     * For more info see [[io.quarkus.runtime.LaunchMode]]
+     */
+    def quarkusLaunchMode: T[ApplicationModelWorker.LaunchMode] = Task {
+      ApplicationModelWorker.LaunchMode.Test
     }
 
     def quarkusSerializedAppModelJavaOpts: T[Seq[String]] = Task {

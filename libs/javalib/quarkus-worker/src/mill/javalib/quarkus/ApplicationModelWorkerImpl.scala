@@ -15,6 +15,8 @@ import io.quarkus.deployment.CodeGenerator
 import io.quarkus.fs.util.ZipUtils
 import io.quarkus.maven.dependency.{ArtifactCoords, DependencyFlags, ResolvedDependencyBuilder}
 import io.quarkus.paths.{PathCollection, PathList}
+import io.quarkus.runtime.LaunchMode
+
 import mill.javalib.quarkus.ApplicationModelWorker.AppMode.Test
 import mill.javalib.quarkus.ApplicationModelWorker.{AppMode, ModuleClassifier, ModuleData}
 
@@ -331,12 +333,20 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
       sourcesDir: Seq[os.Path],
       buildDir: os.Path,
       buildProperties: os.Path,
+      launchMode: ApplicationModelWorker.LaunchMode,
       isTest: Boolean
   ): os.Path = {
     val applicationModel: ApplicationModel = quarkusAppModelBuilder(appModel).build()
 
     val props = new Properties()
     Using.resource(os.read.inputStream(buildProperties))(props.load)
+
+    val quarkusLaunchMode = launchMode match {
+      case ApplicationModelWorker.LaunchMode.Normal => LaunchMode.NORMAL
+      case ApplicationModelWorker.LaunchMode.Run => LaunchMode.RUN
+      case ApplicationModelWorker.LaunchMode.Development => LaunchMode.DEVELOPMENT
+      case ApplicationModelWorker.LaunchMode.Test => LaunchMode.TEST
+    }
 
     val quarkusBootstrap = QuarkusBootstrap.builder.setBaseClassLoader(getClass.getClassLoader)
       .setExistingModel(applicationModel)
@@ -384,7 +394,7 @@ class ApplicationModelWorkerImpl extends ApplicationModelWorker {
       sourceRegistrar,
       applicationModel,
       props,
-      "DEVELOPMENT",
+      quarkusLaunchMode.name(),
       appModel.appMode == Test
     )
     generatedSourcesDir
