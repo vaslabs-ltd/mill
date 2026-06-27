@@ -361,7 +361,7 @@ trait QuarkusModule extends JavaModule { outer =>
 
   def transitiveQuarkusCodeGenModuleData: T[Seq[ApplicationModelWorker.ModuleData]] = Task {
     val t = Task.sequence(moduleDepsChecked.collect {
-      case module: QuarkusModule => module.quarkusModuleData
+      case module: QuarkusModule => module.quarkusCodeGenModuleData
     })()
 
     quarkusCodeGenModuleData() ++ t.flatten
