@@ -82,11 +82,19 @@ object ApplicationModelWorker {
     case Test
   }
 
-  /** Mill API for io.quarkus.runtime.LaunchMode */
+  /** Mill API for io.quarkus.runtime.LaunchMode. */
   enum LaunchMode derives ReadWriter {
+
+    /** Normal production build (Native Image or JVM) */
     case Normal
+
+    /** Like Normal but with dev services supported ([[https://quarkus.io/guides/dev-services]]]. Doesn't make a difference in mill yet */
     case Run
+
+    /** Like run but also with live reload (dev mode). Doesn't make a difference in mill yet */
     case Development
+
+    /** A test run */
     case Test
   }
 
