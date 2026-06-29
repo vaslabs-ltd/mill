@@ -8,6 +8,7 @@ import org.eclipse.aether.repository.{LocalRepository, RemoteRepository}
 import org.eclipse.aether.supplier.RepositorySystemSupplier
 
 import java.io.File
+import java.util.regex.Matcher
 import java.util.Properties
 import scala.jdk.CollectionConverters.*
 
@@ -17,6 +18,22 @@ class Modeler(
     resolver: ModelResolver,
     systemProperties: Properties
 ) {
+
+  private val PropertyRef = "\\$\\{([^}]+)\\}".r
+
+  private def interpolateValue(value: String, properties: Properties): String =
+    PropertyRef.replaceAllIn(value, m =>
+      Matcher.quoteReplacement(Option(properties.getProperty(m.group(1))).getOrElse(m.matched))
+    )
+
+  private def interpolateDependencyVersions(model: org.apache.maven.model.Model, properties: Properties): Unit = {
+    Option(model.getDependencies).foreach(_.asScala.foreach { dep =>
+      Option(dep.getVersion).foreach(v => dep.setVersion(interpolateValue(v, properties)))
+    })
+    Option(model.getDependencyManagement).foreach(_.getDependencies.asScala.foreach { dep =>
+      Option(dep.getVersion).foreach(v => dep.setVersion(interpolateValue(v, properties)))
+    })
+  }
 
   /** Returns the [[ModelBuildingResult]] for all projects in `workspace`. */
   def buildAll(): Seq[ModelBuildingResult] = {
@@ -44,6 +61,10 @@ class Modeler(
       val result1 = builder.build(request)
       val depMgmt1 = Option(result1.getEffectiveModel.getDependencyManagement).map(_.clone)
       val result2 = builder.build(request, result1)
+      val interpolationProps = Properties()
+      systemProperties.forEach((k, v) => interpolationProps.put(k, v))
+      result2.getEffectiveModel.getProperties.forEach((k, v) => interpolationProps.put(k, v))
+      interpolateDependencyVersions(result2.getRawModel, interpolationProps)
       // Restore dep mgmt from Phase 1 since Phase 2 substitutes BOM deps with their components.
       depMgmt1.foreach(result2.getEffectiveModel.setDependencyManagement)
       result2
