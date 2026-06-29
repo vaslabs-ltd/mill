@@ -22,11 +22,16 @@ class Modeler(
   private val PropertyRef = "\\$\\{([^}]+)\\}".r
 
   private def interpolateValue(value: String, properties: Properties): String =
-    PropertyRef.replaceAllIn(value, m =>
-      Matcher.quoteReplacement(Option(properties.getProperty(m.group(1))).getOrElse(m.matched))
+    PropertyRef.replaceAllIn(
+      value,
+      m =>
+        Matcher.quoteReplacement(Option(properties.getProperty(m.group(1))).getOrElse(m.matched))
     )
 
-  private def interpolateDependencyVersions(model: org.apache.maven.model.Model, properties: Properties): Unit = {
+  private def interpolateDependencyVersions(
+      model: org.apache.maven.model.Model,
+      properties: Properties
+  ): Unit = {
     Option(model.getDependencies).foreach(_.asScala.foreach { dep =>
       Option(dep.getVersion).foreach(v => dep.setVersion(interpolateValue(v, properties)))
     })
@@ -62,8 +67,9 @@ class Modeler(
       val depMgmt1 = Option(result1.getEffectiveModel.getDependencyManagement).map(_.clone)
       val result2 = builder.build(request, result1)
       val interpolationProps = Properties()
-      systemProperties.forEach((k, v) => interpolationProps.put(k, v))
       result2.getEffectiveModel.getProperties.forEach((k, v) => interpolationProps.put(k, v))
+      // Match Maven precedence: externally supplied/system properties override model properties.
+      systemProperties.forEach((k, v) => interpolationProps.put(k, v))
       interpolateDependencyVersions(result2.getRawModel, interpolationProps)
       // Restore dep mgmt from Phase 1 since Phase 2 substitutes BOM deps with their components.
       depMgmt1.foreach(result2.getEffectiveModel.setDependencyManagement)
