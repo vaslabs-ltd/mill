@@ -46,5 +46,3 @@ object ModelerTests extends TestSuite {
     }
   }
 }
-
-
