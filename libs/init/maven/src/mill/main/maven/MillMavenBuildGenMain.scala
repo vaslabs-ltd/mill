@@ -213,14 +213,22 @@ object MillMavenBuildGenMain {
   private def isSpringBootParent(parent: Parent): Boolean =
     parent.getGroupId == SpringBootGroupId && parent.getArtifactId == SpringBootParentArtifactId
 
-  private def isSpringBootDependenciesBom(dep: MvnDep): Boolean =
-    dep.organization == SpringBootGroupId && dep.name == SpringBootDependenciesArtifactId
+
+  private def findSpringBootBom(model: Model): Option[Dependency] =
+    Option(model.getDependencyManagement)
+      .flatMap(_.getDependencies.asScala.find(dep =>
+        dep.getGroupId == SpringBootGroupId &&
+        (dep.getArtifactId == SpringBootDependenciesArtifactId || dep.getArtifactId == SpringBootParentArtifactId) &&
+        dep.getScope == "import"
+      ))
 
   /**
-   * Detect if the project is a Spring Boot project by checking if it inherits from spring-boot-starter-parent.
+   * Detect if the project is a Spring Boot project by checking if it inherits from spring-boot-starter-parent
+   * or imports spring-boot-dependencies/spring-boot-starter-parent as a BOM.
    */
   private def isSpringBootProject(model: Model): Boolean =
-    Option(model.getParent).exists(isSpringBootParent)
+    Option(model.getParent).exists(isSpringBootParent) ||
+    findSpringBootBom(model).isDefined
 
   private def nonEmpty(value: String): Option[String] = Option(value).filter(_.nonEmpty)
 
@@ -238,11 +246,13 @@ object MillMavenBuildGenMain {
   }
 
 
-  /** Detect Spring Boot platform version from spring-boot-starter-parent. */
+  /** Detect Spring Boot platform version from spring-boot-starter-parent or imported BOM. */
   private def detectSpringBootVersion(model: Model): Option[String] = {
-    Option(model.getParent)
+    val parentVersion = Option(model.getParent)
       .filter(isSpringBootParent)
       .flatMap(parent => nonEmpty(parent.getVersion))
+
+    parentVersion.orElse(findSpringBootBom(model).flatMap(dep => nonEmpty(dep.getVersion)))
   }
 
   private val QuarkusPluginArtifactId = "quarkus-maven-plugin"
