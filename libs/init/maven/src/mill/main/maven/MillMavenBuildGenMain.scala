@@ -206,19 +206,15 @@ object MillMavenBuildGenMain {
 
   private def isBom(dep: Dependency) = dep.getScope == "import" && dep.getType == "pom"
 
-  private val SpringBootGroupId = "org.springframework.boot"
-  private val SpringBootParentArtifactId = "spring-boot-starter-parent"
-  private val SpringBootDependenciesArtifactId = "spring-boot-dependencies"
-
   private def isSpringBootParent(parent: Parent): Boolean =
-    parent.getGroupId == SpringBootGroupId && parent.getArtifactId == SpringBootParentArtifactId
+    parent.getGroupId == SpringBoot.GroupId && parent.getArtifactId == SpringBoot.ParentArtifactId
 
 
   private def findSpringBootBom(model: Model): Option[Dependency] =
     Option(model.getDependencyManagement)
       .flatMap(_.getDependencies.asScala.find(dep =>
-        dep.getGroupId == SpringBootGroupId &&
-        (dep.getArtifactId == SpringBootDependenciesArtifactId || dep.getArtifactId == SpringBootParentArtifactId) &&
+        dep.getGroupId == SpringBoot.GroupId &&
+        (dep.getArtifactId == SpringBoot.DependenciesArtifactId || dep.getArtifactId == SpringBoot.ParentArtifactId) &&
         dep.getScope == "import"
       ))
 

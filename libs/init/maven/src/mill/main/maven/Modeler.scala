@@ -104,6 +104,12 @@ object Modeler {
   }
 }
 
+object SpringBoot {
+  val GroupId = "org.springframework.boot"
+  val ParentArtifactId = "spring-boot-starter-parent"
+  val DependenciesArtifactId = "spring-boot-dependencies"
+}
+
 class FilteringInheritanceAssembler(delegate: InheritanceAssembler)
     extends InheritanceAssembler {
   override def assembleModelInheritance(
@@ -115,7 +121,7 @@ class FilteringInheritanceAssembler(delegate: InheritanceAssembler)
     val parentGroupId = Option(parent.getGroupId).orElse(Option(parent.getParent).map(_.getGroupId)).getOrElse("")
     val parentArtifactId = parent.getArtifactId
 
-    if (parentGroupId == "org.springframework.boot" && parentArtifactId == "spring-boot-dependencies") {
+    if (parentGroupId == SpringBoot.GroupId && parentArtifactId == SpringBoot.DependenciesArtifactId) {
       val parentClone = parent.clone()
       parentClone.setDependencyManagement(null)
       delegate.assembleModelInheritance(child, parentClone, request, problems)
@@ -142,7 +148,8 @@ class FilteringDependencyManagementImporter(delegate: DependencyManagementImport
           val sourceName = if (source != null) {
             Option(source.getModelId).orElse(Option(source.getLocation)).getOrElse("")
           } else ""
-          val isSpringBOM = sourceName.contains("spring-boot-dependencies") || sourceName.contains("spring-boot-starter-parent")
+          val isSpringBOM = sourceName.contains(SpringBoot.DependenciesArtifactId) ||
+            sourceName.contains(SpringBoot.ParentArtifactId)
           isSpringBOM
         }
       }.asJava
