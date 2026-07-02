@@ -246,6 +246,8 @@ object MillMavenBuildGenMain {
   }
 
 
+  private val PropertyRegex = """\$\{([^}]+)}""".r
+
   /** Detect Spring Boot platform version from spring-boot-starter-parent or imported BOM 
    * (resolving property version from effective properties). */
   private def detectSpringBootVersion(model: Model, rawModel: Model): Option[String] = {
@@ -256,11 +258,10 @@ object MillMavenBuildGenMain {
     parentVersion.orElse {
       findSpringBootBom(rawModel)
         .flatMap(dep => nonEmpty(dep.getVersion))
-        .map { v =>
-          if (v.startsWith("${") && v.endsWith("}")) {
-            val propName = v.substring(2, v.length - 1)
-            Option(model.getProperties.getProperty(propName)).getOrElse(v)
-          } else v
+        .map {
+          case PropertyRegex(propName) =>
+            Option(model.getProperties.getProperty(propName)).getOrElse(s"$${$propName}")
+          case other => other
         }
     }
   }

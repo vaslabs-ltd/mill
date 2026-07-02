@@ -43,6 +43,7 @@ class Modeler(
     request.setSystemProperties(systemProperties)
     request.setValidationLevel(ModelBuildingRequest.VALIDATION_LEVEL_MINIMAL)
     request.setTwoPhaseBuilding(true)
+    request.setLocationTracking(true)
     try {
       val result1 = builder.build(request)
       val depMgmt1 = Option(result1.getEffectiveModel.getDependencyManagement).map(_.clone)
@@ -132,11 +133,17 @@ class FilteringDependencyManagementImporter(delegate: DependencyManagementImport
       request: ModelBuildingRequest,
       problems: ModelProblemCollector
   ): Unit = {
-    // Identify spring-boot-dependencies BOM by checking if it contains spring boot dependencies
+    // Filter out Spring Boot BOMs by checking if their source location points to a Spring Boot BOM or parent.
     val filteredSources = if (sources == null) null else {
       sources.asScala.filterNot { dm =>
-        Option(dm.getDependencies).exists { deps =>
-          deps.asScala.exists(d => d.getGroupId == "org.springframework.boot")
+        Option(dm.getDependencies).flatMap(_.asScala.headOption).exists { dep =>
+          val location = dep.getLocation("")
+          val source = if (location != null) location.getSource else null
+          val sourceName = if (source != null) {
+            Option(source.getModelId).orElse(Option(source.getLocation)).getOrElse("")
+          } else ""
+          val isSpringBOM = sourceName.contains("spring-boot-dependencies") || sourceName.contains("spring-boot-starter-parent")
+          isSpringBOM
         }
       }.asJava
     }
