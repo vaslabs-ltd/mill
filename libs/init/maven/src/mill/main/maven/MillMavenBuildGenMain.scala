@@ -81,26 +81,14 @@ object MillMavenBuildGenMain {
           def moduleDeps(scope: String) = mavenModuleDeps.collect {
             case dep if dep.getScope == scope => moduleDepLookup(dep)
           }
-          val (effectiveBomMvnDeps, effectiveDepManagement, effectiveBomModuleDeps) =
+          val isSpringParentProject = isSpringBootProject(model)
+          val springBootVersion = detectSpringBootVersion(model)
+          val quarkusVersionOpt = detectQuarkusPluginVersion(model)
+
+          val (bomMvnDeps, depManagement, bomModuleDeps) =
             Option(model.getDependencyManagement).fold((Nil, Nil, Nil)) { dm =>
               collectDependencyManagement(dm, toMvnOrModuleDep, moduleDepLookup)
             }
-
-          val isSpringParentProject = isSpringBootProject(model)
-          val springBootVersion = detectSpringBootVersion(model)
-
-          val quarkusVersionOpt = detectQuarkusPluginVersion(model)
-
-          val (rawBomMvnDeps, rawDepManagement, rawBomModuleDeps) =
-            Option(result.getRawModel.getDependencyManagement).fold((Nil, Nil, Nil)) { dm =>
-              collectDependencyManagement(dm, toMvnOrModuleDep, moduleDepLookup)
-            }
-
-          val (bomMvnDeps, depManagement, bomModuleDeps) = selectDependencyManagement(
-            isSpringParentProject = isSpringParentProject,
-            effective = (effectiveBomMvnDeps, effectiveDepManagement, effectiveBomModuleDeps),
-            raw = (rawBomMvnDeps, rawDepManagement, rawBomModuleDeps)
-          )
 
           mainModule = mainModule.copy(
             imports = "mill.javalib.*" +: mainModule.imports,
@@ -249,15 +237,6 @@ object MillMavenBuildGenMain {
     (bomMvnDeps, depManagement, bomModuleDeps)
   }
 
-  private def selectDependencyManagement(
-      isSpringParentProject: Boolean,
-      effective: (Seq[MvnDep], Seq[MvnDep], Seq[ModuleDep]),
-      raw: (Seq[MvnDep], Seq[MvnDep], Seq[ModuleDep])
-  ): (Seq[MvnDep], Seq[MvnDep], Seq[ModuleDep]) =
-    if (isSpringParentProject) {
-      // Effective model pulls in a very large inherited set from spring-boot-dependencies BOM.
-      (raw._1.filterNot(isSpringBootDependenciesBom), raw._2, raw._3)
-    } else effective
 
   /** Detect Spring Boot platform version from spring-boot-starter-parent. */
   private def detectSpringBootVersion(model: Model): Option[String] = {

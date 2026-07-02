@@ -1,7 +1,10 @@
 package mill.main.maven
 
 import mill.api.PathRef
+import org.apache.maven.model.*
 import org.apache.maven.model.building.*
+import org.apache.maven.model.composition.DependencyManagementImporter
+import org.apache.maven.model.inheritance.InheritanceAssembler
 import org.apache.maven.model.resolution.ModelResolver
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils
 import org.eclipse.aether.repository.{LocalRepository, RemoteRepository}
@@ -63,7 +66,14 @@ object Modeler {
       context: String = "",
       systemProperties: Properties = null
   ): Modeler = {
-    val builder = DefaultModelBuilderFactory().newInstance()
+    val builder = new DefaultModelBuilderFactory() {
+      override def newInheritanceAssembler(): InheritanceAssembler = {
+        new FilteringInheritanceAssembler(super.newInheritanceAssembler())
+      }
+      override def newDependencyManagementImporter(): DependencyManagementImporter = {
+        new FilteringDependencyManagementImporter(super.newDependencyManagementImporter())
+      }
+    }.newInstance()
     val system = RepositorySystemSupplier().get()
     val session = MavenRepositorySystemUtils.newSession()
     session.setLocalRepositoryManager(system.newLocalRepositoryManager(session, local))
@@ -90,5 +100,46 @@ object Modeler {
     // Maven reads this property and uses it for relative path resolution.
     props.put("maven.multiModuleProjectDirectory", PathRef.toAbsString(mvnWorkspace))
     props
+  }
+}
+
+class FilteringInheritanceAssembler(delegate: InheritanceAssembler)
+    extends InheritanceAssembler {
+  override def assembleModelInheritance(
+      child: Model,
+      parent: Model,
+      request: ModelBuildingRequest,
+      problems: ModelProblemCollector
+  ): Unit = {
+    val parentGroupId = Option(parent.getGroupId).orElse(Option(parent.getParent).map(_.getGroupId)).getOrElse("")
+    val parentArtifactId = parent.getArtifactId
+
+    if (parentGroupId == "org.springframework.boot" && parentArtifactId == "spring-boot-dependencies") {
+      val parentClone = parent.clone()
+      parentClone.setDependencyManagement(null)
+      delegate.assembleModelInheritance(child, parentClone, request, problems)
+    } else {
+      delegate.assembleModelInheritance(child, parent, request, problems)
+    }
+  }
+}
+
+class FilteringDependencyManagementImporter(delegate: DependencyManagementImporter)
+    extends DependencyManagementImporter {
+  override def importManagement(
+      target: Model,
+      sources: java.util.List[? <: DependencyManagement],
+      request: ModelBuildingRequest,
+      problems: ModelProblemCollector
+  ): Unit = {
+    // Identify spring-boot-dependencies BOM by checking if it contains spring boot dependencies
+    val filteredSources = if (sources == null) null else {
+      sources.asScala.filterNot { dm =>
+        Option(dm.getDependencies).exists { deps =>
+          deps.asScala.exists(d => d.getGroupId == "org.springframework.boot")
+        }
+      }.asJava
+    }
+    delegate.importManagement(target, filteredSources.asInstanceOf[java.util.List[? <: DependencyManagement]], request, problems)
   }
 }
