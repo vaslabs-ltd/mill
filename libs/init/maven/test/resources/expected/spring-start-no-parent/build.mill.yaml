@@ -1,0 +1,10 @@
+mill-version: SNAPSHOT
+mill-jvm-version: system
+extends: [spring.boot.SpringBootModule, MavenModule, PublishModule]
+springBootPlatformVersion: 3.2.4
+mvnDeps:
+- org.springframework.boot:spring-boot-starter
+artifactName: demo
+pomSettings:
+  organization: com.example
+publishVersion: 0.0.1-SNAPSHOT
