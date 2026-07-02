@@ -81,8 +81,8 @@ object MillMavenBuildGenMain {
           def moduleDeps(scope: String) = mavenModuleDeps.collect {
             case dep if dep.getScope == scope => moduleDepLookup(dep)
           }
-          val isSpringParentProject = isSpringBootProject(model)
-          val springBootVersion = detectSpringBootVersion(model)
+          val isSpringParentProject = isSpringBootProject(model, result.getRawModel)
+          val springBootVersion = detectSpringBootVersion(model, result.getRawModel)
           val quarkusVersionOpt = detectQuarkusPluginVersion(model)
 
           val (bomMvnDeps, depManagement, bomModuleDeps) =
@@ -224,11 +224,11 @@ object MillMavenBuildGenMain {
 
   /**
    * Detect if the project is a Spring Boot project by checking if it inherits from spring-boot-starter-parent
-   * or imports spring-boot-dependencies/spring-boot-starter-parent as a BOM.
+   * or imports spring-boot-dependencies/spring-boot-starter-parent as a BOM in its raw model.
    */
-  private def isSpringBootProject(model: Model): Boolean =
+  private def isSpringBootProject(model: Model, rawModel: Model): Boolean =
     Option(model.getParent).exists(isSpringBootParent) ||
-    findSpringBootBom(model).isDefined
+    findSpringBootBom(rawModel).isDefined
 
   private def nonEmpty(value: String): Option[String] = Option(value).filter(_.nonEmpty)
 
@@ -246,13 +246,23 @@ object MillMavenBuildGenMain {
   }
 
 
-  /** Detect Spring Boot platform version from spring-boot-starter-parent or imported BOM. */
-  private def detectSpringBootVersion(model: Model): Option[String] = {
+  /** Detect Spring Boot platform version from spring-boot-starter-parent or imported BOM 
+   * (resolving property version from effective properties). */
+  private def detectSpringBootVersion(model: Model, rawModel: Model): Option[String] = {
     val parentVersion = Option(model.getParent)
       .filter(isSpringBootParent)
       .flatMap(parent => nonEmpty(parent.getVersion))
 
-    parentVersion.orElse(findSpringBootBom(model).flatMap(dep => nonEmpty(dep.getVersion)))
+    parentVersion.orElse {
+      findSpringBootBom(rawModel)
+        .flatMap(dep => nonEmpty(dep.getVersion))
+        .map { v =>
+          if (v.startsWith("${") && v.endsWith("}")) {
+            val propName = v.substring(2, v.length - 1)
+            Option(model.getProperties.getProperty(propName)).getOrElse(v)
+          } else v
+        }
+    }
   }
 
   private val QuarkusPluginArtifactId = "quarkus-maven-plugin"
