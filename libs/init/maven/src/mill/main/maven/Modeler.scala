@@ -1,7 +1,7 @@
 package mill.main.maven
 
 import mill.api.PathRef
-import org.apache.maven.model.*
+import org.apache.maven.model.{DependencyManagement, Model}
 import org.apache.maven.model.building.*
 import org.apache.maven.model.composition.DependencyManagementImporter
 import org.apache.maven.model.inheritance.InheritanceAssembler
@@ -118,10 +118,13 @@ class FilteringInheritanceAssembler(delegate: InheritanceAssembler)
       request: ModelBuildingRequest,
       problems: ModelProblemCollector
   ): Unit = {
-    val parentGroupId = Option(parent.getGroupId).orElse(Option(parent.getParent).map(_.getGroupId)).getOrElse("")
+    val parentGroupId =
+      Option(parent.getGroupId).orElse(Option(parent.getParent).map(_.getGroupId)).getOrElse("")
     val parentArtifactId = parent.getArtifactId
 
-    if (parentGroupId == SpringBoot.GroupId && parentArtifactId == SpringBoot.DependenciesArtifactId) {
+    if (
+      parentGroupId == SpringBoot.GroupId && parentArtifactId == SpringBoot.DependenciesArtifactId
+    ) {
       val parentClone = parent.clone()
       parentClone.setDependencyManagement(null)
       delegate.assembleModelInheritance(child, parentClone, request, problems)
@@ -140,7 +143,8 @@ class FilteringDependencyManagementImporter(delegate: DependencyManagementImport
       problems: ModelProblemCollector
   ): Unit = {
     // Filter out Spring Boot BOMs by checking if their source location points to a Spring Boot BOM or parent.
-    val filteredSources = if (sources == null) null else {
+    val filteredSources = if (sources == null) null
+    else {
       sources.asScala.filterNot { dm =>
         Option(dm.getDependencies).flatMap(_.asScala.headOption).exists { dep =>
           val location = dep.getLocation("")
@@ -154,6 +158,11 @@ class FilteringDependencyManagementImporter(delegate: DependencyManagementImport
         }
       }.asJava
     }
-    delegate.importManagement(target, filteredSources.asInstanceOf[java.util.List[? <: DependencyManagement]], request, problems)
+    delegate.importManagement(
+      target,
+      filteredSources.asInstanceOf[java.util.List[? <: DependencyManagement]],
+      request,
+      problems
+    )
   }
 }

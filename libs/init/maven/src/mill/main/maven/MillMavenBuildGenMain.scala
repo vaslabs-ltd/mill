@@ -209,13 +209,12 @@ object MillMavenBuildGenMain {
   private def isSpringBootParent(parent: Parent): Boolean =
     parent.getGroupId == SpringBoot.GroupId && parent.getArtifactId == SpringBoot.ParentArtifactId
 
-
   private def findSpringBootBom(model: Model): Option[Dependency] =
     Option(model.getDependencyManagement)
       .flatMap(_.getDependencies.asScala.find(dep =>
         dep.getGroupId == SpringBoot.GroupId &&
-        (dep.getArtifactId == SpringBoot.DependenciesArtifactId || dep.getArtifactId == SpringBoot.ParentArtifactId) &&
-        dep.getScope == "import"
+          (dep.getArtifactId == SpringBoot.DependenciesArtifactId || dep.getArtifactId == SpringBoot.ParentArtifactId) &&
+          dep.getScope == "import"
       ))
 
   /**
@@ -224,7 +223,7 @@ object MillMavenBuildGenMain {
    */
   private def isSpringBootProject(model: Model, rawModel: Model): Boolean =
     Option(model.getParent).exists(isSpringBootParent) ||
-    findSpringBootBom(rawModel).isDefined
+      findSpringBootBom(rawModel).isDefined
 
   private def nonEmpty(value: String): Option[String] = Option(value).filter(_.nonEmpty)
 
@@ -241,11 +240,12 @@ object MillMavenBuildGenMain {
     (bomMvnDeps, depManagement, bomModuleDeps)
   }
 
-
   private val PropertyRegex = """\$\{([^}]+)}""".r
 
-  /** Detect Spring Boot platform version from spring-boot-starter-parent or imported BOM 
-   * (resolving property version from effective properties). */
+  /**
+   * Detect Spring Boot platform version from spring-boot-starter-parent or imported BOM
+   * (resolving property version from effective properties).
+   */
   private def detectSpringBootVersion(model: Model, rawModel: Model): Option[String] = {
     val parentVersion = Option(model.getParent)
       .filter(isSpringBootParent)
