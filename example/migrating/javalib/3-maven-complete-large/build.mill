@@ -11,8 +11,6 @@
 
 > ./mill {acyclic-visitor,service-to-worker,update-method}.compile
 
-> ./mill __.compile # scheduled
-
 > ./mill acyclic-visitor.test # run a subproject's tests
 ...
 Test com.iluwatar.acyclicvisitor.ZoomTest#testAcceptForUnix() started
@@ -20,4 +18,9 @@ Test com.iluwatar.acyclicvisitor.ZoomTest#testAcceptForUnix() finished, took ...
 Test com.iluwatar.acyclicvisitor.ZoomTest finished, took ...
 ...
 
-*/
+> ./mill __.compile # scheduled compile all subprojects
+
+> rm hexagonal-architecture/src/test/java/com/iluwatar/hexagonal/banking/MongoBankTest.java # scheduled exclude failing test
+> ./mill __.test # scheduled run all tests
+
+ */
