@@ -223,7 +223,8 @@ object MillMavenBuildGenMain {
    */
   private def isSpringBootProject(model: Model, rawModel: Model): Boolean =
     Option(model.getParent).exists(isSpringBootParent) ||
-      findSpringBootBom(rawModel).isDefined
+      findSpringBootBom(rawModel).isDefined ||
+      model.getDependencies.asScala.exists(_.getGroupId == SpringBoot.GroupId)
 
   private def nonEmpty(value: String): Option[String] = Option(value).filter(_.nonEmpty)
 
@@ -251,7 +252,7 @@ object MillMavenBuildGenMain {
       .filter(isSpringBootParent)
       .flatMap(parent => nonEmpty(parent.getVersion))
 
-    parentVersion.orElse {
+    val fromBom = parentVersion.orElse {
       findSpringBootBom(rawModel)
         .flatMap(dep => nonEmpty(dep.getVersion))
         .map {
@@ -259,6 +260,12 @@ object MillMavenBuildGenMain {
             Option(model.getProperties.getProperty(propName)).getOrElse(s"$${$propName}")
           case other => other
         }
+    }
+
+    fromBom.orElse {
+      model.getDependencies.asScala
+        .find(_.getGroupId == SpringBoot.GroupId)
+        .flatMap(dep => nonEmpty(dep.getVersion))
     }
   }
 

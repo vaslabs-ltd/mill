@@ -93,16 +93,34 @@ case class ModuleSpec(
     )
   }
 
+  private def stripSpringVersion(deps: Values[MvnDep]): Values[MvnDep] =
+    deps.copy(base = deps.base.map {
+      case dep if dep.organization == "org.springframework.boot" => dep.copy(version = "")
+      case dep => dep
+    })
+
   def withSpringBootModule(springBootVersion: Value[String]): ModuleSpec =
     copy(
       imports = "mill.javalib.spring.boot.*" +: imports,
       supertypes = "SpringBootModule" +: supertypes,
-      springBootPlatformVersion = springBootVersion
+      springBootPlatformVersion = springBootVersion,
+      mvnDeps = stripSpringVersion(mvnDeps),
+      compileMvnDeps = stripSpringVersion(compileMvnDeps),
+      runMvnDeps = stripSpringVersion(runMvnDeps),
+      bomMvnDeps = stripSpringVersion(bomMvnDeps),
+      depManagement = stripSpringVersion(depManagement)
     )
 
   def withSpringBootTestsModule(): ModuleSpec = {
     val requiredSupertypes = Seq("SpringBootTestsModule", "MavenTests")
-    copy(supertypes = requiredSupertypes ++ supertypes.filterNot(requiredSupertypes.contains))
+    copy(
+      supertypes = requiredSupertypes ++ supertypes.filterNot(requiredSupertypes.contains),
+      mvnDeps = stripSpringVersion(mvnDeps),
+      compileMvnDeps = stripSpringVersion(compileMvnDeps),
+      runMvnDeps = stripSpringVersion(runMvnDeps),
+      bomMvnDeps = stripSpringVersion(bomMvnDeps),
+      depManagement = stripSpringVersion(depManagement)
+    )
   }
 
   def withQuarkusModule(
