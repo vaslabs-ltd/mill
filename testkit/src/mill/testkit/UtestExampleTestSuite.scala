@@ -12,6 +12,7 @@ object UtestExampleTestSuite extends TestSuite {
   val daemonMode: Boolean = sys.env("MILL_INTEGRATION_DAEMON_MODE").toBoolean
 
   val millExecutable: os.Path = os.Path(System.getenv("MILL_INTEGRATION_LAUNCHER"), os.pwd)
+  println(s"environment: ${sys.env}")
   val tests: Tests = Tests {
 
     test("exampleTest") {

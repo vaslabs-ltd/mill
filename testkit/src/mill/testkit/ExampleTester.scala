@@ -68,6 +68,7 @@ object ExampleTester {
       useInMemory: Boolean = false,
       runScheduled: Boolean = false
   ): os.Path = {
+    println(s"Running ExampleTester with runScheduled=$runScheduled")
     val tester = ExampleTester(
       daemonMode,
       workspaceSourcePath,
@@ -107,6 +108,8 @@ class ExampleTester(
     val runScheduledOk =
       if (isScheduledCommand && isCI) runScheduled
       else true
+
+    println(s"commandComment: $commandComment, isScheduledCommand: $isScheduledCommand, isCI: $isCI, runScheduledOk: $runScheduledOk")
 
     runScheduledOk && {
       val remainingComment = commandComment.stripPrefix("scheduled").trim
