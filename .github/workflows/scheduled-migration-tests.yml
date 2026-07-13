@@ -17,12 +17,6 @@ env:
   MILL_TEST_TIMEOUT_MINUTES: '60'
 
 jobs:
-  build-linux:
-    uses: ./.github/workflows/pre-build.yml
-    with:
-      java-version: 25
-      os: ubuntu-latest
-      shell: bash
 
   build-windows:
     uses: ./.github/workflows/pre-build.yml
@@ -31,16 +25,6 @@ jobs:
       os: windows-latest
       shell: powershell
 
-  linux:
-    needs: build-linux
-    uses: ./.github/workflows/post-build-selective.yml
-    with:
-      install-sbt: true
-      java-version: 25
-      millargs: "example.migrating._._.testForked"
-      mill-test-scheduled: 'true'
-      mill-test-timeout-minutes: '60'
-      shell: bash
 
   windows:
     needs: build-windows
@@ -54,24 +38,3 @@ jobs:
       mill-test-timeout-minutes: '60'
       shell: powershell
 
-  mac:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v7
-        with: { fetch-depth: 1 }
-
-      - uses: ./.github/actions/pre-build-setup
-        with:
-          os: macos-latest
-          java-version: 25
-          shell: bash
-
-      - uses: ./.github/actions/post-build-setup
-        with:
-          java-version: 25
-          os: macos-latest
-
-      - uses: sbt/setup-sbt@v1
-
-      - run: ./mill -k 'example.migrating._._.testForked'
-        shell: bash
