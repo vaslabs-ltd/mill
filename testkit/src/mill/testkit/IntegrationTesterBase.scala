@@ -20,8 +20,18 @@ trait IntegrationTesterBase {
       case Some(p) => s"$javaHomeBin${System.getProperty("path.separator")}${p}"
     }
 
-    if (!propagateJavaHome) Map.empty
-    else Map("JAVA_HOME" -> sys.props("java.home"), "PATH" -> newPath)
+    // Disable git auto gc and maintenance to avoid file locking issues on Windows
+    // when removing the `.git` folder after a test run
+    val gitConfigEnv = Map(
+      "GIT_CONFIG_COUNT" -> "2",
+      "GIT_CONFIG_KEY_0" -> "gc.auto",
+      "GIT_CONFIG_VALUE_0" -> "0",
+      "GIT_CONFIG_KEY_1" -> "maintenance.auto",
+      "GIT_CONFIG_VALUE_1" -> "false"
+    )
+
+    if (!propagateJavaHome) gitConfigEnv
+    else Map("JAVA_HOME" -> sys.props("java.home"), "PATH" -> newPath) ++ gitConfigEnv
   }
 
   private lazy val useSharedOutputDir: Boolean =
