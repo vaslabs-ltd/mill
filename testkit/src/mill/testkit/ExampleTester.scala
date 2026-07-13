@@ -279,8 +279,27 @@ ${expectedSnippets.mkString("\n")}
       command: String = ""
   ): Unit = {
     if (check) {
-      if (expectedSnippets.exists(_.startsWith("error: "))) assert(evalResult.exitCode != 0)
-      else assert(evalResult.exitCode == 0)
+      val expectedFailure = expectedSnippets.exists(_.startsWith("error: "))
+      val exitCode = evalResult.exitCode
+      val commandClue = if (command == "") "" else s"==== command:\n$command\n"
+      val outputClue = {
+        val out = evalResult.out
+        val err = evalResult.err
+        if (err.isEmpty) s"==== output:\n$out\n"
+        else s"==== stdout:\n$out\n==== stderr:\n$err\n"
+      }
+      val sourceClue = s"==== workspaceSourcePath:\n$workspaceSourcePath\n"
+      if (expectedFailure) {
+        Predef.assert(
+          exitCode != 0,
+          s"\n${sourceClue}${commandClue}Expected command to fail (exit code != 0), but it succeeded.\n$outputClue"
+        )
+      } else {
+        Predef.assert(
+          exitCode == 0,
+          s"\n${sourceClue}${commandClue}Expected command to succeed (exit code == 0), but it failed with exit code $exitCode.\n$outputClue"
+        )
+      }
     }
 
     val unwrappedExpected = expectedSnippets
@@ -308,7 +327,8 @@ ${expectedSnippets.mkString("\n")}
     for (expectedLine <- unwrappedExpected.linesIterator) {
       Predef.assert(
         filteredOut.linesIterator.exists(globMatches(expectedLine, _)),
-        (if (command == "") "" else s"==== command:\n$command\n") +
+        s"\n==== workspaceSourcePath:\n$workspaceSourcePath\n" +
+          (if (command == "") "" else s"==== command:\n$command\n") +
           s"""==== filteredOut:
 $filteredOut
 ==== Missing expectedLine:
