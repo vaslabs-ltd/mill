@@ -22,13 +22,16 @@ trait IntegrationTesterBase {
 
     // Disable git auto gc and maintenance to avoid file locking issues on Windows
     // when removing the `.git` folder after a test run
-    val gitConfigEnv = Map(
-      "GIT_CONFIG_COUNT" -> "2",
-      "GIT_CONFIG_KEY_0" -> "gc.auto",
-      "GIT_CONFIG_VALUE_0" -> "0",
-      "GIT_CONFIG_KEY_1" -> "maintenance.auto",
-      "GIT_CONFIG_VALUE_1" -> "false"
-    )
+
+    // commenting to verify with handle64
+    val gitConfigEnv = Map.empty[String,String]
+//      Map(
+//      "GIT_CONFIG_COUNT" -> "2",
+//      "GIT_CONFIG_KEY_0" -> "gc.auto",
+//      "GIT_CONFIG_VALUE_0" -> "0",
+//      "GIT_CONFIG_KEY_1" -> "maintenance.auto",
+//      "GIT_CONFIG_VALUE_1" -> "false"
+//    )
 
     if (!propagateJavaHome) gitConfigEnv
     else Map("JAVA_HOME" -> sys.props("java.home"), "PATH" -> newPath) ++ gitConfigEnv
@@ -74,6 +77,15 @@ trait IntegrationTesterBase {
       for (p <- os.list(workspacePath)) os.remove.all(p)
     } else {
       println("Re-using out folder")
+      // Diagnostics
+      val handlePathStr = "C:\\ProgramData\\chocolatey\\lib\\sysinternals\\tools\\handle64.exe"
+      val gitPath = workspacePath / ".git"
+      if (os.exists(gitPath)) {
+        os.proc( handlePathStr, "-nobanner", "-accepteula", gitPath.toString).call(
+          check = false,
+          stdout = os.Inherit
+        )
+      }
       // if `MILL_TEST_SHARED_OUTPUT_DIR` is provided, keep `out/` intact
       // to re-use the daemon
       for (p <- os.list(workspacePath) if p.last != "out") os.remove.all(p)

@@ -53,6 +53,10 @@ jobs:
       run:
         shell: ${{ inputs.shell }}
     steps:
+      - name: Download handle tool
+        if: runner.os == 'Windows'
+        run: choco install sysinternals -y
+
       - uses: coursier/cache-action@v8
 
       - uses: actions/download-artifact@v7
