@@ -32,6 +32,7 @@ jobs:
       install-sbt: true
       java-version: 25
       millargs: "example.migrating._._.testForked"
+      extra: "--jobs=2"
       mill-test-scheduled: 'true'
       mill-test-timeout-minutes: '60'
       shell: bash
