@@ -17,8 +17,6 @@ Test com.iluwatar.acyclicvisitor.ZoomTest finished, took ...
 
 > ./mill __.compile # scheduled compile all subprojects
 
-> rm hexagonal-architecture/src/test/java/com/iluwatar/hexagonal/banking/MongoBankTest.java # scheduled exclude failing test
-> rm -rf presentation-model/src/test intercepting-filter/src/test model-view-presenter/src/test bloc/src/test  # scheduled exclude tests with UI deps
-> ./mill -k __.test # scheduled run all other tests
+> ./mill {singleton,builder,decorator,proxy,strategy,observer,producer-consumer}.__.test # scheduled run some subprojects' tests
 
 */
