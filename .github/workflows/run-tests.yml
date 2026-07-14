@@ -36,9 +36,7 @@
 name: Run Tests
 
 on:
-  push:
-    branches-ignore:
-      - '**-patch-**'
+  
   pull_request:
     types:
       - opened

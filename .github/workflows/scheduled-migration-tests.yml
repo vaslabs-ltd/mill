@@ -1,6 +1,7 @@
 name: Scheduled Migration Tests
 
 on:
+  push:
   schedule:
     # 04:00 every Sunday
     - cron: '0 4 * * 0'
