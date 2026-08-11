@@ -66,7 +66,7 @@ object JUnit5Tests extends TestSuite {
 
       test("junit bom & platform are added when version is at least 5.12.0") {
         testEval().scoped { eval =>
-          val Right(resultBom) = eval.apply(module.deps.junitBom.bomMvnDeps).runtimeChecked
+          val Right(resultBom) = eval.apply(module.deps.junitBom.mandatoryBomMvnDeps).runtimeChecked
           assert(
             resultBom.value.contains(junitBom)
           )
@@ -80,7 +80,8 @@ object JUnit5Tests extends TestSuite {
 
       test("junit bom & platform are NOT added when version is below 5.11.0") {
         testEval().scoped { eval =>
-          val Right(resultBom) = eval.apply(module.deps.junitNoBom.bomMvnDeps).runtimeChecked
+          val Right(resultBom) =
+            eval.apply(module.deps.junitNoBom.mandatoryBomMvnDeps).runtimeChecked
           assert(
             !resultBom.value.contains(junitBom)
           )

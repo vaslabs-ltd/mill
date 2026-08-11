@@ -62,7 +62,7 @@ object JUnit6Tests extends TestSuite {
 
       test("junit bom & platform are added when version is set") {
         testEval().scoped { eval =>
-          val Right(resultBom) = eval.apply(module.deps.junitBom.bomMvnDeps): @unchecked
+          val Right(resultBom) = eval.apply(module.deps.junitBom.mandatoryBomMvnDeps): @unchecked
           assert(
             resultBom.value.contains(junitBom)
           )

@@ -314,7 +314,7 @@ object HelloGroovyTests extends TestSuite {
 
         test("spock bom is added when version is at least 2.3") {
           testEval().scoped { eval =>
-            val Right(result) = eval.apply(deps.spockBom.bomMvnDeps).runtimeChecked
+            val Right(result) = eval.apply(deps.spockBom.mandatoryBomMvnDeps).runtimeChecked
 
             assert(
               result.value.contains(spockBom)
@@ -324,7 +324,7 @@ object HelloGroovyTests extends TestSuite {
 
         test("spock bom is NOT added when version is below 2.3") {
           testEval().scoped { eval =>
-            val Right(result) = eval.apply(deps.spockNoBom.bomMvnDeps).runtimeChecked
+            val Right(result) = eval.apply(deps.spockNoBom.mandatoryBomMvnDeps).runtimeChecked
 
             assert(
               !result.value.contains(spockBom)

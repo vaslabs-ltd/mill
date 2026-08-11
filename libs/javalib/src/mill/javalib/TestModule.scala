@@ -464,8 +464,8 @@ object TestModule {
 
     override def testFramework: T[String] = "com.github.sbt.junit.jupiter.api.JupiterFramework"
 
-    override def bomMvnDeps: T[Seq[Dep]] = Task {
-      super.bomMvnDeps() ++ {
+    override def mandatoryBomMvnDeps: T[Seq[Dep]] = Task {
+      super.mandatoryBomMvnDeps() ++ {
         Seq(jupiterVersion())
           .filter(!_.isBlank() && useBom())
           .map(v => mvn"org.junit:junit-bom:${v.trim()}")
@@ -726,8 +726,8 @@ object TestModule {
       }
     }
 
-    override def bomMvnDeps: T[Seq[Dep]] = Task {
-      super.bomMvnDeps() ++
+    override def mandatoryBomMvnDeps: T[Seq[Dep]] = Task {
+      super.mandatoryBomMvnDeps() ++
         Seq(spockVersion())
           .filter(!_.isBlank() && isSpockBomAvailable())
           .flatMap(v =>
