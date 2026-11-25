@@ -45,6 +45,10 @@ on:
       - reopened
       - synchronize
       - ready_for_review
+    paths-ignore:
+      - '*.md'
+      - '*.adoc'
+      - '.github/*.md'
   workflow_dispatch:
 
 # cancel older runs of a pull request;

@@ -1,6 +1,10 @@
 name: 'autofix.ci'
 on:
   pull_request:
+    paths-ignore:
+      - '*.md'
+      - '*.adoc'
+      - '.github/*.md'
 jobs:
   autofix:
     if: github.event.pull_request.draft == false
