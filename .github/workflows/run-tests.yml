@@ -39,6 +39,10 @@ on:
   push:
     branches-ignore:
       - '**-patch-**'
+    paths-ignore:
+      - '*.md'
+      - '*.adoc'
+      - '.github/*.md'
   pull_request:
     types:
       - opened
