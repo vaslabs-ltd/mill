@@ -783,7 +783,11 @@ object Jvm {
         attributes =
           if (sources) Seq(VariantSelector.AttributesBased.sources)
           else Nil,
-        artifactTypesOpt = artifactTypes
+        artifactTypesOpt = artifactTypes,
+        // Skip missing sources instead of failing
+        transformArtifacts0 =
+          if (sources) Seq(_.map((dep, pub, artifact) => (dep, pub, artifact.withOptional(true))))
+          else Nil
       )
         .eitherResult()
 
